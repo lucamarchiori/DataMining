@@ -1,0 +1,36 @@
+---
+title: "Lecture_2024-02-28"
+output: html_document
+date: "2024-02-28"
+---
+
+```{r}
+
+USArrests["Maryland", "UrbanPop"] # 67 -- the transcription error
+UA.C <- USArrests
+UA.C["Maryland", "UrbanPop"] <- 76.6
+
+s5u <- c("Colorado", "Florida", "Mississippi", "Wyoming")
+s5d <- c("Nebraska", "Pennsylvania")
+UA.C[s5u, "UrbanPop"] <- UA.C[s5u, "UrbanPop"] + 0.5
+UA.C[s5d, "UrbanPop"] <- UA.C[s5d, "UrbanPop"] - 0.5
+```
+
+
+## Descriptive statistics EDA
+```{r}
+summary(UA.C)
+hist(UA.C[,"Murder"],5)
+boxplot(UA.C[,"Murder"])
+```
+
+## Multivariate 
+```{r}
+plot(USArrests[,"UrbanPop"],USArrests[,"Rape"])
+plot(USArrests[,"Assault"],USArrests[,"Murder"])
+cor(USArrests)
+# require(graphics)
+pairs(USArrests, panel = panel.smooth, main = "USArrests data")
+
+```
+
