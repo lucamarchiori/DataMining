@@ -1,0 +1,71 @@
+---
+title: "lab_28_02_24"
+author: "livio finos"
+date: "2024-02-28"
+output: 
+  html_document: 
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## USArrests
+
+```{r cars}
+USArrests
+
+## Difference between 'USArrests' and its correction
+USArrests["Maryland", "UrbanPop"] # 67 -- the transcription error
+UA.C <- USArrests
+UA.C["Maryland", "UrbanPop"] <- 76.6
+
+## also +/- 0.5 to restore the original  <n>.5  percentages
+s5u <- c("Colorado", "Florida", "Mississippi", "Wyoming")
+s5d <- c("Nebraska", "Pennsylvania")
+UA.C[s5u, "UrbanPop"] <- UA.C[s5u, "UrbanPop"] + 0.5
+UA.C[s5d, "UrbanPop"] <- UA.C[s5d, "UrbanPop"] - 0.5
+
+USArrests = UA.C
+
+print(USArrests)
+
+```
+
+## Descriptive Statistics EDA
+
+```{r}
+mean(USArrests[,"UrbanPop"])
+mean(USArrests[,3])
+
+mean(USArrests[,1])
+mean(USArrests[,2])
+mean(USArrests[,4])
+
+var(USArrests[,4])
+
+summary(USArrests)
+
+hist(USArrests[,"Murder"],5)
+
+boxplot(USArrests[,"Murder"])
+
+```
+## Multivariate
+
+```{r}
+plot(USArrests[,"UrbanPop"],USArrests[,"Murder"])
+cor(USArrests[,"UrbanPop"],USArrests[,"Murder"])
+
+
+plot(USArrests[,"Assault"],USArrests[,"Murder"])
+cor(USArrests[,"Assault"],USArrests[,"Murder"])
+
+
+require(graphics)
+pairs(USArrests, panel = panel.smooth, main = "USArrests data")
+
+cor(USArrests)
+```
+

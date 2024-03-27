@@ -1,0 +1,90 @@
+---
+title: "2024-03-20"
+output: html_document
+date: "2024-03-20"
+---
+
+# DATA IMPORT
+```{r}
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+dati = train
+test <- read.csv("wineq_validation.csv", stringsAsFactors=F)
+```
+
+
+## Fit a linear model
+
+```{r}
+
+mod=lm(quality~alcohol,data=dati)
+summary(mod)
+
+plot(dati$alcohol,dati$quality)
+abline(mod)
+
+y=dati$quality
+
+MSE <- function(y,model){
+  yhat=predict(model)
+  mean((y-yhat)^2)
+}
+
+
+MSE(y=dati$quality,model=mod)
+
+
+##################
+dati$sqrt_alcohol=sqrt(dati$alcohol)
+
+dati$log_alcohol=log(dati$alcohol)
+
+mod=lm(quality~log_alcohol,data=dati)
+summary(mod)
+
+plot(dati$log_alcohol,dati$quality)
+abline(mod)
+
+MSE(y=dati$quality,model=mod)
+
+
+```
+
+```{r}
+
+summary(fit)
+fit_m3 = lm(quality ~ . -citric.acid -chlorides -total.sulfur.dioxide, data=train)
+summary(fit_m3)
+
+yhat = predict(fit_m3, newdata=test)
+
+write.table(file="mySubmission.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+plot(predict(fit_m3, newdata=train))
+plot(train$volatile.acidity, residuals(fit_m3))
+fit_m3n = lm(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide + I(volatile.acidity)^2, data=train) 
+summary(fit_m3n)
+
+# Take out density
+fit_m3n2 = lm(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - density, data=train) 
+summary(fit_m3n2) #Residual standard error: 0.7592
+
+# Take out residual sugar but not density
+fit_m3n3 = lm(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - residual.sugar, data=train) 
+summary(fit_m3n3) #Residual standard error: 0.7636 (Worse)
+
+# Base on RSE we decide to take out only the density
+
+yhat = predict(fit_m3n3, newdata=test)
+write.table(file="mySubmission.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+str(train)
+summary(train)
+#pairs(train.pch = 20)
+
+library("ggplot2")
+library("GGally")
+ggpairs(train) + theme_bw()
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

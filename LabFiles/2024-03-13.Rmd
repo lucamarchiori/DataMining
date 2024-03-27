@@ -1,0 +1,69 @@
+---
+title: "2024-03-13"
+output: html_document
+date: "2024-03-13"
+---
+
+
+```{r}
+# Importing data
+dati <- read.csv("~/DataMining/LabFiles/wineq_train.csv")
+
+# Compactly Display the Structure of an Arbitrary R Object
+str(dati)
+
+# Take an initial view of the dataset
+summary(dati)
+```
+
+### Fit a linear model
+
+```{r}
+mod=lm(quality~alcohol, data = dati)
+summary(mod)
+```
+### Plotting
+
+```{r}
+plot(dati$alcohol, dati$quality)
+abline(mod)
+```
+
+### Computing Minimal Squared Error
+```{r}
+
+y = dati$quality
+MSE <- function(y, model){
+  yhat = predict(model) # Estimated y computed on the basis of the features
+  mean((y-yhat)^2)
+}
+
+mse = MSE(y=dati$quality, model=mod)
+
+# Square root of MSE
+sqrt(mse)
+```
+
+```{r}
+
+
+y = dati$quality
+MSE <- function(y, model){
+  yhat = predict(model) # Estimated y computed on the basis of the features
+  mean((y-yhat)^2)
+}
+
+for (i in 1:length(dati)) {
+  print(colnames(dati)[i], MSE(y=dati[,i], model=mod))
+  print(MSE(y=dati[,i], model=mod))
+}
+
+
+mse = MSE(y=dati$quality, model=mod)
+
+# Square root of MSE
+sqrt(mse)
+```
+
+
+

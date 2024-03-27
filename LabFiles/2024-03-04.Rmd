@@ -1,0 +1,78 @@
+---
+title: "lab_24_03_04"
+author: "livio finos"
+date: "2024-03-04"
+output: 
+  html_document: 
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## USArrests
+
+```{r cars}
+USArrests
+
+## Difference between 'USArrests' and its correction
+USArrests["Maryland", "UrbanPop"] # 67 -- the transcription error
+UA.C <- USArrests
+UA.C["Maryland", "UrbanPop"] <- 76.6
+
+## also +/- 0.5 to restore the original  <n>.5  percentages
+s5u <- c("Colorado", "Florida", "Mississippi", "Wyoming")
+s5d <- c("Nebraska", "Pennsylvania")
+UA.C[s5u, "UrbanPop"] <- UA.C[s5u, "UrbanPop"] + 0.5
+UA.C[s5d, "UrbanPop"] <- UA.C[s5d, "UrbanPop"] - 0.5
+
+USArrests = UA.C
+
+print(USArrests)
+
+```
+
+
+```{r}
+plot(USArrests[,"Assault"],USArrests[,"Murder"])
+#cor(USArrests[,"Assault"],USArrests[,"Murder"])
+```
+```{r}
+pr.out =prcomp (USArrests)
+
+str(pr.out)
+
+biplot(pr.out,xlabs=1:50)
+```
+
+```{r}
+pr.out =prcomp (USArrests , scale. =TRUE)
+biplot(pr.out,xlabs=1:50)
+
+pr.out$x[,1]=-pr.out$x[,1]
+pr.out$rotation[,1]=-pr.out$rotation[,1]
+
+biplot(pr.out,xlabs=1:50)
+
+
+library(ggbiplot)
+ggbiplot(pr.out,labels = rownames(USArrests))+theme_bw()
+
+```
+
+```{r}
+library(ggbiplot)
+ggbiplot(pr.out)+theme_bw()
+```
+
+
+## Wine Quality
+
+```{r}
+dati <- read.csv("G:/My Drive/beeviva/bee-fore/winequal/wineq_train.csv")
+dati$quality=NULL
+
+summary(dati)
+```
+
