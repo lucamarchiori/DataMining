@@ -122,34 +122,7 @@ RMSE(y=train$quality, model=fit_m3n3)
 ```
 
 
-Find the best RMSE by trying all the possible combinations of features
-```{r}
-# Create all possible combinations of features
-all_features <- colnames(train)  # Assuming 'train' is your training data frame
-all_features <- setdiff(all_features, "quality")  # Remove the dependent variable
-feature_combinations <- lapply(1:length(all_features), function(x) combn(all_features, x))
 
-# Fit models and calculate RMSE for each combination
-best_rmse <- Inf
-best_model <- NULL
-for (i in seq_along(feature_combinations)) {
-  combinations <- feature_combinations[[i]]
-  for (j in 1:ncol(combinations)) {
-    formula <- as.formula(paste("quality ~", paste(combinations[, j], collapse = " + ")))
-    model <- lm(formula, data = train)
-    rmse <- RMSE(train$quality, model)
-    if (rmse < best_rmse) {
-      best_rmse <- rmse
-      best_model <- model
-    }
-  }
-}
-
-summary(best_model)
-RMSE(y=train$quality, model=best_model)
-yhat = predict(best_model, newdata=test)
-write.table(file="mySubmission.txt", yhat, row.names = FALSE, col.names = FALSE)
-```
 
 # Cross-Validation
 
@@ -204,19 +177,17 @@ We will now perform KNN using the knn() function, which is part of the knn() cla
 library(class)
 library(caret)
 
-minK = 5
-maxK = 15
-k_values <- minK:maxK # Define the values of K for cross-validation
+k_values <- seq(from=10, to=50, by=5) # Define the values of K for cross-validation
 results <- data.frame(K = integer(), oneOverK = numeric(), RMSE_train = numeric(), RMSE_cv = numeric())
 
 # Perform k-fold cross-validation for each K value
 for (k in k_values) {
   # Define the KNN control parameters for cross-validation
   # number: the number of folds
-  ctrl <- trainControl(method = "cv", number = k, savePredictions = TRUE)
+  ctrl <- trainControl(method = "cv", number = 5, savePredictions = TRUE)
 
   # Define the KNN model
-  model <- train(quality ~ ., data = train, method = "knn", trControl = ctrl, tuneGrid = data.frame(k = k))
+  model <- train(quality ~ ., data = train, method = "knn", trControl = ctrl, tuneGrid = data.frame(k = k), preProcess = c("center","scale") )
   
   # Store results
   results <- rbind(results, data.frame(K = model$results$k, oneOverK = 1/model$results$k, RMSE = model$results$RMSE))
@@ -230,6 +201,15 @@ ggplot(results, aes(x = oneOverK)) +
   geom_line(aes(y = RMSE, color = "RMSE")) +
   scale_color_manual(values = c("RMSE" = "blue")) +
   #scale_x_continuous(expand=c(0, 0), limits=c(0, 0.2)) +
+  scale_y_continuous(expand=c(0, 0), limits=c(0, 1)) +
+  labs(x = "1/K", y = "RMSE") +
+  ggtitle("RMSE vs 1/K") +
+  theme_minimal()
+
+ggplot(results, aes(x = oneOverK)) +
+  geom_line(aes(y = RMSE, color = "RMSE")) +
+  scale_color_manual(values = c("RMSE" = "blue")) +
+  #scale_x_continuous(expand=c(0, 0), limits=c(0, 0.2)) +
   #scale_y_continuous(expand=c(0, 0), limits=c(0, 1)) +
   labs(x = "1/K", y = "RMSE") +
   ggtitle("RMSE vs 1/K") +
@@ -238,7 +218,131 @@ ggplot(results, aes(x = oneOverK)) +
 
 
 
+```{r}
+library("caret")
+set.seed(1234)
+
+rm(list = ls())
+
+data <- read.csv("wineq_train.csv", stringsAsFactors=F)
+
+#data$quality <- as.factor(data$quality)
+train <- createDataPartition(data[, "quality"], p=0.75, list=FALSE)
+data.trn <- data[train,]
+data.tst <- data[-train,]
+```
+
+```{r}
+sqrt(nrow(data))
+
+ctrl <- trainControl(method="cv", number=10) #10 fold cross validation
+
+model <- train(quality ~ .,
+               method = "knn",
+               trControl = ctrl,
+               preProcess = c("center","scale"),
+               tuneGrid = data.frame(k=seq(1, 100, by=1)),
+               data = data.trn)
+
+RMSES = c()
+for (k in seq(1, 100, by=1)) {
+  yhat = predict(model, newdata=train)
+  RMSE(y=train$quality, model=model)
+}
 
 
 
+# best        model
+# 0.7151333   quality ~ .
+# 
+
+print(model)
+plot(model)
+
+plot(1/model$results$k, model$results$RMSE, type = "l", xlab = "1/k", ylab = "RMSE", main = "RMSE vs 1/k", col="blue")
+```
+
+
+
+
+# Subset Selection (6.1)
+## Best Subset Selection (6.1.1)
+
+
+
+\[R^2 = 1-\frac{RSS}{TSS}\]
+
+
+Find the best RMSE by trying all the possible combinations of features.
+Note: as the number of features increases, it may be possible to over fit the model.
+Todo: split the training set in 80-20% and use the 20% as a validation set. 
+Todo: try AIC, BIC, adjusted R^2, Mallow's Cp, etc.
+Todo: try getting the three charts of page 233 by varying the features and use it to select the best number of features (X on chart).
+Todo: compute the actual \[P\choose{k} \]
+Todo: Try forward and backward stepwise selection to optimize the number of tested models for speed (page 230)
+
+```{r}
+# Create all possible combinations of features
+all_features <- colnames(train)  # Assuming 'train' is your training data frame
+all_features <- setdiff(all_features, "quality")  # Remove the dependent variable
+feature_combinations <- lapply(1:length(all_features), function(x) combn(all_features, x))
+
+# Fit models and calculate RMSE for each combination
+best_rmse <- Inf
+best_model <- NULL
+for (i in seq_along(feature_combinations)) {
+  combinations <- feature_combinations[[i]]
+  for (j in 1:ncol(combinations)) {
+    formula <- as.formula(paste("quality ~", paste(combinations[, j], collapse = " + ")))
+    model <- lm(formula, data = train)
+    rmse <- RMSE(train$quality, model)
+    if (rmse < best_rmse) {
+      best_rmse <- rmse
+      best_model <- model
+    }
+  }
+}
+
+summary(best_model)
+RMSE(y=train$quality, model=best_model)
+yhat = predict(best_model, newdata=test)
+```
+
+```{r}
+
+# Take 80% of the data for training and 20% for validation 
+set.seed(123)
+train_index <- sample(1:nrow(train), 0.8*nrow(train))
+partialTrain <- train[train_index,]
+partialValidation <- train[-train_index,]
+
+# Create all possible combinations of features
+all_features <- colnames(partialTrain)  # Assuming 'train' is your training data frame
+all_features <- setdiff(all_features, "quality")  # Remove the dependent variable
+feature_combinations <- lapply(1:length(all_features), function(x) combn(all_features, x))
+
+# Fit models and calculate RMSE for each combination
+best_rmse <- Inf
+best_model <- NULL
+for (i in seq_along(feature_combinations)) {
+  combinations <- feature_combinations[[i]]
+  for (j in 1:ncol(combinations)) {
+    formula <- as.formula(paste("quality ~", paste(combinations[, j], collapse = " + ")))
+    model <- lm(formula, data = partialTrain)
+    rmse <- RMSE(train$quality, model)
+    if (rmse < best_rmse) {
+      best_rmse <- rmse
+      best_model <- model
+    }
+  }
+}
+
+summary(best_model)
+best_rmse
+yhat = predict(best_model, newdata=test)
+write.table(file="mySubmission2.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+```
+
+# Principal Component Regresstion (6.3.1)
 
