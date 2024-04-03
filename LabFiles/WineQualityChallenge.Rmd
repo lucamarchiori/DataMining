@@ -70,7 +70,7 @@ MSE <- function(y, model){
   mean((y-yhat)^2)
 }
 
-SQRTMSE <- function(y, model){
+RMSE <- function(y, model){
   sqrt(MSE(y,model))
 }
 ```
@@ -103,26 +103,26 @@ We get a SQMSE of 0.7534613 which is good
 ```{r}
 fit_m3 = lm(quality ~ . -citric.acid -chlorides -total.sulfur.dioxide, data=train)
 yhat = predict(fit_m3, newdata=test)
-SQRTMSE(y=train$quality, model=fit_m3)
+RMSE(y=train$quality, model=fit_m3)
 write.table(file="mySubmission.txt", yhat, row.names = FALSE, col.names = FALSE)
 ```
 
-Taking out also density, leads to a SQRTMSE of 0.7583856 which is worse
+Taking out also density, leads to a RMSE of 0.7583856 which is worse
 ```{r}
 fit_m3n2 = lm(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - density, data=train) 
 yhat = predict(fit_m3n2, newdata=test)
-SQRTMSE(y=train$quality, model=fit_m3n2)
+RMSE(y=train$quality, model=fit_m3n2)
 ```
 
-Taking out residual sugar but not density, leads to a SQRTMSE of 0.7627304 which is worse
+Taking out residual sugar but not density, leads to a RMSE of 0.7627304 which is worse
 ```{r}
 fit_m3n3 = lm(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - residual.sugar, data=train) 
 yhat = predict(fit_m3n3, newdata=test)
-SQRTMSE(y=train$quality, model=fit_m3n3)
+RMSE(y=train$quality, model=fit_m3n3)
 ```
 
 
-Find the best SQRTMSE by trying all the possible combinations of features
+Find the best RMSE by trying all the possible combinations of features
 ```{r}
 # Create all possible combinations of features
 all_features <- colnames(train)  # Assuming 'train' is your training data frame
@@ -137,7 +137,7 @@ for (i in seq_along(feature_combinations)) {
   for (j in 1:ncol(combinations)) {
     formula <- as.formula(paste("quality ~", paste(combinations[, j], collapse = " + ")))
     model <- lm(formula, data = train)
-    rmse <- SQRTMSE(train$quality, model)
+    rmse <- RMSE(train$quality, model)
     if (rmse < best_rmse) {
       best_rmse <- rmse
       best_model <- model
@@ -146,9 +146,99 @@ for (i in seq_along(feature_combinations)) {
 }
 
 summary(best_model)
-SQRTMSE(y=train$quality, model=best_model)
+RMSE(y=train$quality, model=best_model)
 yhat = predict(best_model, newdata=test)
 write.table(file="mySubmission.txt", yhat, row.names = FALSE, col.names = FALSE)
 ```
+
+# Cross-Validation
+
+## Validation set approach (5.1.1)
+Suppose that we would like to estimate the test error associated with fitting a particular statistical learning method on a set of observations. The validation set approach is a very simple strategy validation for this task: it involves randomly dividing the available set of observations into two parts, a training set and a validation set. The validation model is fit on the training set, and the fitted model is used to predict the set responses for the observations in the validation set. The resulting validation hold-out set set error rate, typically assessed using MSE in the case of a quantitative response, provides an estimate of the test error rate. In simpler words, the statistical learning method is fit on the training set, and its performance is evaluated on the validation set.
+
+If we repeat the process of randomly splitting the sample set into two parts, we will get a somewhat different estimate for the test MSE.
+
+Validation set approach drawbacks:
+1. The validation estimate of the test error rate can be highly variable, depending on precisely which observations are included in the training set and which observations are included in the validation set.
+2. Only a subset of the observations, those that are included in the training set rather than in the validation set, are used to fit the model. Since statistical methods tend to perform worse when trained on fewer observations, this suggests that the validation set error rate may tend to overestimate the test error rate for the model fit on the entire data set.
+
+## Leave-One-Out Cross-Validation (5.1.2)
+A set of n data points is repeatedly split into a training set (containing all but one observation), and a validation set that contains only that observation (shown in beige). The test error is then estimated by averaging the n resulting MSEs. The first training set contains all but observation 1, the second training set contains all but observation 2, and so forth.
+
+\[CV_{(n)} = \frac{1}{n} \cdot \sum_{i=1}^{n} MSE_i\]
+
+LOOC has far less bias since we repeatedly fit the statistical learning method using training sets that contain n − 1 observations, almost as many as are in the entire data set. This is in contrast to the validation set approach, in which the training set is typically around half the size of the original data set.
+The LOOCV approach tends not to overestimate the test error rate as much as the validation set approach does.
+Performing LOOCV multiple times will always yield the same results: there is no randomness in the training/validation set splits.
+
+LOOCV has the potential to be expensive to implement, since the model has to be fit n times. This can be very time consuming if n is large, and if each individual model is slow to fit.
+
+LOOCV is a special case of k-fold CV in which k is set to equal n. 
+
+## K-fold crossvalidation (5.1.3)
+We have to decide which portion of the dataset is for testing and what is for training. Of course we'd like to maximize both: maximizing the training data is useful to get the best possible result, while maximizing the test data is useful to get the best validation. A trade off is needed because all the point used in the training set cannot be used for the test set and vice-versa.
+
+We partition the dataset in K partitions (also known as folds). For example if we have 200 data point and K=10 we'll have 20 partitions of 10 data points each.
+
+Then, we run K separate learning experiments, each time selecting a different test set and using the remaining sets ad training data. At the end, we average the test results for those K experiments.
+
+LOOCV is a special case of k-fold CV in which k is set to equal n. What is the advantage of using k = 5 or k = 10 rather than k = n? The most obvious advantage is computational. LOOCV requires fitting the statistical learning method n times. This has the potential to be computationally expensive. 
+
+\[CV_{(k)} = \frac{1}{k} \cdot \sum_{i=1}^{k} MSE_i\]
+
+
+##Cross-Validation on Classification Problems (5.1.5)
+Cross-validation can also be a very useful approach in the classification setting when Y is qualitative. In this setting, cross-validation works just as described earlier, except that rather than using MSE to quantify test error, we instead use the number of misclassified observations.
+
+## K-Nearest Neighbors (KNN)
+
+### Homework assignment
+Choose a k for k-fold cross validation.
+Make the plot of RMSE based on train data and cross-validation as a function of 1/K (K of KNN).
+You can pre-select the most promising features to use in the KNN with the aim to improve the prediction accuracy. But be careful to the cross validation strategy to use.
+
+#### Execution
+We will now perform KNN using the knn() function, which is part of the knn() class library. Rather than a two-step approach in which we first fit the model and then we use the model to make predictions, knn() forms predictions using a single command.
+
+```{r}
+library(class)
+library(caret)
+
+minK = 5
+maxK = 15
+k_values <- minK:maxK # Define the values of K for cross-validation
+results <- data.frame(K = integer(), oneOverK = numeric(), RMSE_train = numeric(), RMSE_cv = numeric())
+
+# Perform k-fold cross-validation for each K value
+for (k in k_values) {
+  # Define the KNN control parameters for cross-validation
+  # number: the number of folds
+  ctrl <- trainControl(method = "cv", number = k, savePredictions = TRUE)
+
+  # Define the KNN model
+  model <- train(quality ~ ., data = train, method = "knn", trControl = ctrl, tuneGrid = data.frame(k = k))
+  
+  # Store results
+  results <- rbind(results, data.frame(K = model$results$k, oneOverK = 1/model$results$k, RMSE = model$results$RMSE))
+}
+
+# Plot RMSE based on train data and cross-validation
+
+oneOverK <- results$oneOverK
+RMSE <- results$RMSE
+ggplot(results, aes(x = oneOverK)) +
+  geom_line(aes(y = RMSE, color = "RMSE")) +
+  scale_color_manual(values = c("RMSE" = "blue")) +
+  #scale_x_continuous(expand=c(0, 0), limits=c(0, 0.2)) +
+  #scale_y_continuous(expand=c(0, 0), limits=c(0, 1)) +
+  labs(x = "1/K", y = "RMSE") +
+  ggtitle("RMSE vs 1/K") +
+  theme_minimal()
+```
+
+
+
+
+
 
 
