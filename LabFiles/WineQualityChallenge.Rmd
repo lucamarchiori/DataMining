@@ -59,7 +59,7 @@ summary(fit)
 yhat = predict(fit, newdata=test)
 
 # Put the prediction in a file for the submission on the platform
-write.table(file="mySubmission.txt", yhat, row.names = FALSE, col.names = FALSE)
+write.table(file="fitLinearModelVBasic.txt", yhat, row.names = FALSE, col.names = FALSE)
 ```
 
 ## Computing Minimal Squared Error
@@ -104,7 +104,7 @@ We get a SQMSE of 0.7534613 which is good
 fit_m3 = lm(quality ~ . -citric.acid -chlorides -total.sulfur.dioxide, data=train)
 yhat = predict(fit_m3, newdata=test)
 RMSE(y=train$quality, model=fit_m3)
-write.table(file="mySubmission.txt", yhat, row.names = FALSE, col.names = FALSE)
+write.table(file="fitLinearModelV2.txt", yhat, row.names = FALSE, col.names = FALSE)
 ```
 
 Taking out also density, leads to a RMSE of 0.7583856 which is worse
@@ -173,6 +173,7 @@ You can pre-select the most promising features to use in the KNN with the aim to
 #### Execution
 We will now perform KNN using the knn() function, which is part of the knn() class library. Rather than a two-step approach in which we first fit the model and then we use the model to make predictions, knn() forms predictions using a single command.
 
+##### Personal code
 ```{r}
 library(class)
 library(caret)
@@ -215,73 +216,63 @@ ggplot(results, aes(x = oneOverK)) +
   ggtitle("RMSE vs 1/K") +
   theme_minimal()
 ```
-
-
-
+##### Group code
 ```{r}
 library("caret")
+library("ggplot2")
+library("lattice")
+
 set.seed(1234)
-
 rm(list = ls())
-
-data <- read.csv("wineq_train.csv", stringsAsFactors=F)
-
-#data$quality <- as.factor(data$quality)
-train <- createDataPartition(data[, "quality"], p=0.75, list=FALSE)
-data.trn <- data[train,]
-data.tst <- data[-train,]
-```
-
-```{r}
-sqrt(nrow(data))
+data.trn <- read.csv("wineq_train.csv", stringsAsFactors=F)
 
 ctrl <- trainControl(method="cv", number=10) #10 fold cross validation
+
+K <- seq(5, 70, by=5)
 
 model <- train(quality ~ .,
                method = "knn",
                trControl = ctrl,
                preProcess = c("center","scale"),
-               tuneGrid = data.frame(k=seq(1, 100, by=1)),
+               tuneGrid = data.frame(k=K),
                data = data.trn)
 
-RMSES = c()
-for (k in seq(1, 100, by=1)) {
-  yhat = predict(model, newdata=train)
-  RMSE(y=train$quality, model=model)
+train_rmse <- rep(NA, length(K))
+i <- 0
+for (k in model$results$k){
+  modelCV <- train(quality ~ .,
+                 method = "knn",
+                 trControl = ctrl,
+                 preProcess = c("center","scale"),
+                 tuneGrid = data.frame(k=k),
+                 data = data.trn)
+  predictions_train <- predict(modelCV, newdata = data.trn)
+  train_rmse[i] <- sqrt(mean((data.trn$quality - predictions_train)^2))
+  i <- i + 1
 }
 
+plot(1/model$results$k, model$results$RMSE, type = "l", xlab = "1/k", ylab = "RMSE", main = "RMSE vs 1/k", col="red", ylim=c(0.63,0.73))
+points(1/K, train_rmse, type = "l", pch = 16, col = "blue")
 
+best_k = model$bestTune$k
+index = which.min(model$results$RMSE)
+points(1/best_k, model$results$RMSE[index], pch = "o", col = "black")
+legend("right", legend = c("Training RMSE", "CV RMSE", paste("Best result k=", best_k)), col = c("blue", "red", "black"), pch = 16)
 
-# best        model
-# 0.7151333   quality ~ .
-# 
-
-print(model)
-plot(model)
-
-plot(1/model$results$k, model$results$RMSE, type = "l", xlab = "1/k", ylab = "RMSE", main = "RMSE vs 1/k", col="blue")
 ```
-
-
 
 
 # Subset Selection (6.1)
 ## Best Subset Selection (6.1.1)
 
-
-
 \[R^2 = 1-\frac{RSS}{TSS}\]
 
-
 Find the best RMSE by trying all the possible combinations of features.
-Note: as the number of features increases, it may be possible to over fit the model.
-Todo: split the training set in 80-20% and use the 20% as a validation set. 
-Todo: try AIC, BIC, adjusted R^2, Mallow's Cp, etc.
-Todo: try getting the three charts of page 233 by varying the features and use it to select the best number of features (X on chart).
-Todo: compute the actual \[P\choose{k} \]
-Todo: Try forward and backward stepwise selection to optimize the number of tested models for speed (page 230)
-
 ```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+
 # Create all possible combinations of features
 all_features <- colnames(train)  # Assuming 'train' is your training data frame
 all_features <- setdiff(all_features, "quality")  # Remove the dependent variable
@@ -304,11 +295,17 @@ for (i in seq_along(feature_combinations)) {
 }
 
 summary(best_model)
-RMSE(y=train$quality, model=best_model)
+RMSE(y=train$quality, model=best_model) # We get a SQMSE of 0.7534613
 yhat = predict(best_model, newdata=test)
+write.table(file="bestSubsetSelectionV1.txt", yhat, row.names = FALSE, col.names = FALSE)
 ```
+As the number of features increases, it may be possible to over fit the model.
+Try to split the training set in 80-20% and use the 20% as a validation set. 
 
 ```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
 
 # Take 80% of the data for training and 20% for validation 
 set.seed(123)
@@ -323,26 +320,89 @@ feature_combinations <- lapply(1:length(all_features), function(x) combn(all_fea
 
 # Fit models and calculate RMSE for each combination
 best_rmse <- Inf
+best_rss <- Inf
 best_model <- NULL
 for (i in seq_along(feature_combinations)) {
   combinations <- feature_combinations[[i]]
   for (j in 1:ncol(combinations)) {
     formula <- as.formula(paste("quality ~", paste(combinations[, j], collapse = " + ")))
     model <- lm(formula, data = partialTrain)
-    rmse <- RMSE(train$quality, model)
-    if (rmse < best_rmse) {
-      best_rmse <- rmse
+    # Calculate RSS
+    RSS <- sum(model$residuals^2)
+    print(rss)
+    
+    rmse <- RMSE(partialTrain$quality, model)
+    
+    #if (rmse < best_rmse) {
+    #  best_rmse <- rmse
+    #  best_model <- model
+    #}
+    
+      if (RSS < best_rss) {
+      best_rss <- RSS
       best_model <- model
     }
   }
 }
 
 summary(best_model)
-best_rmse
 yhat = predict(best_model, newdata=test)
 write.table(file="mySubmission2.txt", yhat, row.names = FALSE, col.names = FALSE)
 
 ```
 
+### Forward Stepwise Selection
+Forward stepwise selection is a computationally efficient alternative to best forward subset selection. While the best subset selection procedure considers all stepwise 2^p possible models containing subsets of the p predictors, forward stepwise considers a much smaller set of models. Forward stepwise selection begins with a model containing no predictors, and then adds predictors to the model, one-at-a-time, until all of the predictors are in the model. In particular, at each step the variable that gives the greatest additional improvement to the fit is added to the model.
+```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+
+baseModel <- lm(quality ~ 1, data = train)
+FwStepSel <- step(baseModel, direction = "forward", scope = list(lower = baseModel, upper = lm(quality ~ ., data = train)))
+
+
+#Based on the previous step results:
+fit = lm(formula = FwStepSel$call$formula, data = train)
+summary(fit)
+yhat = predict(fit, newdata=test)
+
+# Calc RMSE
+RMSE(y=train$quality, model=fit)
+
+# Put the prediction in a file for the submission on the platform
+write.table(file="forwardStepwiseSelection.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+```
+### Backward Stepwise Selection
+Like forward stepwise selection, backward stepwise selection provides an backward efficient alternative to best subset selection. However, unlike forward stepwise selection, it begins with the full least squares model containing all p selection predictors, and then iteratively removes the least useful predictor, one-at-a-time.
+```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+
+fullModel <- lm(quality ~ ., data = train)
+BwStepSel <- step(fullModel, direction="backward")
+
+
+#Based on the previous step results:
+fit = lm(formula = BwStepSel$call$formula, data = train)
+summary(fit)
+yhat = predict(fit, newdata=test)
+
+# Calc RMSE
+RMSE(y=train$quality, model=fit)
+
+# Put the prediction in a file for the submission on the platform
+write.table(file="backwardStepwiseSelection.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+```
+
+
+Todo: 
+Todo: try AIC, BIC, adjusted R^2, Mallow's Cp, etc.
+Todo: try getting the three charts of page 233 by varying the features and use it to select the best number of features (X on chart).
+Todo: compute the actual \[P\choose{k} \]
+Todo: Try forward and backward stepwise selection to optimize the number of tested models for speed (page 230)
 # Principal Component Regresstion (6.3.1)
 
