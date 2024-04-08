@@ -244,11 +244,11 @@ model <- train(quality ~ .,
                tuneGrid = data.frame(k=seq(1, 100, by=1)),
                data = data.trn)
 
-RMSES = c()
-for (k in seq(1, 100, by=1)) {
-  yhat = predict(model, newdata=train)
-  RMSE(y=train$quality, model=model)
-}
+#RMSES = c()
+#for (k in seq(1, 100, by=1)) {
+#  yhat = predict(model, newdata=train)
+#  RMSE(y=train$quality, model=model)
+#}
 
 
 
