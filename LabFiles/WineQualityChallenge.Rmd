@@ -406,3 +406,17 @@ Todo: compute the actual \[P\choose{k} \]
 Todo: Try forward and backward stepwise selection to optimize the number of tested models for speed (page 230)
 # Principal Component Regresstion (6.3.1)
 
+# 2024-04-08
+WHat is data leakegae or data snooping or double dipping? Getting knoledge from the test set to train the model
+
+
+It is wrong to apply feature selection before CV...
+Also scaling should be applied after validation.
+CHeck out data divas work
+
+
+
+
+
+
+
