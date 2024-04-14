@@ -55,6 +55,8 @@ abline(fit$coefficients["(Intercept)"], fit$coefficients["balance"])
 ## Logistic Regression
 Logistic regression models the probability of default (between 0 and 1). Using a threshold we can decide if the probability is high enough to have a default = "Yes" or "No".
 
+In linear regression, we fit the line using the least squares method (minimize the sum of the squares of residuals). In logistic regression, since we have a different concept of "residual", it is not possible to use least squares and calculate $R^2$. Here, we fit the line using the maximum likelihood method.
+
 $$
 Pr(default = Yes | balance)
 $$
@@ -115,5 +117,69 @@ predictedDefault #It predicts default = 1
 
 ```
 
+Even tho Logistic Regression is one of the most popular linear classification models that perform well for binary classification but falls short in the case of multiple classification problems with well-separated classes. While LDA handles these quite efficiently.
 
+## Linear Discriminant Analysis
+Linear discriminant analysis (LDA) is a method used in statistics to find a linear combination of features that characterizes or separates two or more classes. The resulting combination may be used as a linear classifier, or, more commonly, for dimensional reduction before later classification.
+
+LDA operates by projecting features from a higher-dimensional space into a lower-dimensional one and aims to find a straight line or plane that best separates these groups while minimizing overlap within each class.
+When there are 3 categories, LDA finds 2 new axes because the 3 means for each category define a plane. If there are n categories, LDA finds n-1 new axes.
+
+The new axes are found in order to maximize the ratio between between class scatter and within class scatter.
+$$ 
+\frac{d_1^2 + d_2^2 + d_n^2}{s_1^2 + s_2^2 + s_n^2}
+$$
+Where $d_1^2 + d_n^2$ is the sum of the squared distances from the central point. Note that $d$ is the distance from the central point of each class to the central point of all the classes. $s_1^2 + s_n^2$ is the sum of the squared scatter from each category.
+
+It assumes that the data follows a normal or Gaussian distribution, meaning each feature forms a bell-shaped curve when plotted and that each of the classes has identical covariance matrices.
+
+Linear Discriminant Analysis (LDA) is like Principal Component Analysis (PCA), in that it provides a way plot data with a lot of dimensions onto a simple 2-D graph. However, LDA focuses on maximizing the separability among the known categories. Just like PCA, LDA ranks the axes in order of importance. So we can use LDA to reduce dimensions just like PCA. Just like PCA, the new axes created by LDA have loading scores that tell us which variables had the largest influence on each axis.
+
+### Implementation
+Now we will perform LDA on the Default data. In R, we fit an LDA model using the lda() function, which is part of the MASS library. Notice that the lda() syntax for the lda() function is identical to that of lm(), and to that of glm() except for the absence of the family option. 
+
+```{r}
+library(MASS)
+library(ggplot2)
+library(gridExtra)
+
+resLda <- lda(formula = default ~ scale(balance) + scale(income), data = Default)
+resLda
+
+predLda <- predict(resLda)
+str(predLda)
+
+dati$predProbLda <- predLda$posterior[,"Yes"]
+dati$predClassLda <- predLda$class
+
+plotData <- ggplot(data = Default,
+    mapping = aes(x = balance, y = income, color = default, shape = student)) +
+    geom_point(geom = "point", stat = "identity", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Original data")
+
+
+## Plot (probability)
+plotLdaProb <- ggplot(data = dati,
+    mapping = aes(x = balance, y = income, color = predProbLda, shape = student)) +
+    geom_point(geom = "point", alpha = 0.5) +
+    scale_color_gradient(low = "yellow", high = "red") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted probability of outcome (LDA)")
+grid.arrange(plotData, plotLdaProb, ncol = 2)
+
+## Plot (classification)
+plotLdaClass <- ggplot(data = dati,
+    mapping = aes(x = balance, y = income, color = predClassLda, shape = student)) +
+    geom_point(geom = "point", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted outcome (LDA)")
+grid.arrange(plotData, plotLdaClass, ncol = 2)
+
+```
 
