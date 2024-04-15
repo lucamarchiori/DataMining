@@ -1,0 +1,88 @@
+---
+title: "LinearRegressionChapter"
+author: "Luca Marchiori"
+date: "2024-04-14"
+output: html_document
+---
+
+```{r}
+# Get the advertising data from https://www.statlearning.com/s/Advertising.csv
+dati <- read.csv("https://www.statlearning.com/s/Advertising.csv")
+dati$X <- NULL
+head(dati)
+summary(dati)
+
+```
+
+# Simple Linear Regression
+This is a very straightforward simple linear approach for predicting a quantitative response Y on the basis of a single predictor variable X. It assumes that there is approximately a linear relationship between X and Y. Mathematically, we can write this linear relationship as: $Y ≈ \beta_0 + \beta_1X$.
+
+In relation to the Sales data, we can write the linear relationship as: $Sales ≈ \beta_0 + \beta_1TV$.
+
+$\beta_0$ and $\beta_1$ are two unknown constants that represent the intercept and slope terms in the linear model. Together are known as the model coefficients or parameters. Once we have used our slope training data to produce estimates $\hat{\beta_0}$ and $\hat{\beta_1}$ for the model coefficients, we can predict future sales on the basis of a particular value of TV advertising parameter by computing $\hat{Y} = \hat{\beta_0} + \hat{\beta_1}X$. We use a hat symbol to denote the estimated value for an unknown parameter or coefficient, or to denote the predicted value of the response.
+
+
+```{r}
+# Fit a simple linear regression model to predict Sales using TV advertising
+lm.fit <- lm(sales ~ TV, data = dati)
+```
+
+## Estimating the Coefficients
+In practice, $\beta_0$ and $\beta_1$ are unknown. So before we can make predictions, we must use data to estimate the coefficients. We want to find an intercept $\beta_0$ and a slope $\beta_1$ such that the resulting line is as close as possible to the data points. To do this, the most common approach involves minimizing the least squares criterion.
+
+Let $\hat{y_i} = \hat{\beta_0} + \hat{\beta_1}X_i$ be the prediction for Y based on the i-th value of X. Then $e_i = y_i − \hat{y_i}$ represents the i-th residual: this is the difference between the i-th observed response value and the i-th response value that is predicted by our linear model.
+
+We define the residual sum of squares (RSS) as $RSS = e^2_1 + e^2_2 + ... + e^2_n $ or equivalently as $RSS = (y_1 - \hat{\beta_0} − \hat{\beta_1} x_1 )^2 + (y_2 - \hat{\beta_0} − \hat{\beta_1} x_2 )^2 + ... + (y_n - \hat{\beta_0} − \hat{\beta_1} x_n )^2$. The least squares approach chooses $\hat{\beta_0}$ and $\hat{\beta_1}$ to minimize the RSS
+
+In a linear model, $\beta_0$ is the expected value of Y when X = 0, and $\beta_1$ is the average increase in Y associated with a one-unit increase in X.
+
+```{r}
+
+# Get the squared residuals
+# resid is a generic function which extracts model residuals from objects returned by modeling functions.
+residuals <- resid(lm.fit)
+head(residuals)
+
+#calculate residual sum of squares (method 1)
+deviance(lm.fit )
+
+#calculate residual sum of squares (method 2)
+sum(residuals^2)
+
+#These information can be found in the summary of the linear model, along with the estimated coefficients
+summary(lm.fit)
+
+plot(dati$TV, dati$sales)
+abline(lm.fit, col = "red", lwd = 2)
+```
+
+## Model Accuracy
+In the reality, since the true function that models the relationship between X and Y is generally unknown, we will always have some error $\epsilon$ in our estimates. In the context of the simple linear regression model, $\epsilon$ is assumed to be normally distributed with a mean of zero.
+
+### Residual Standard Error (RSE)
+The RSE is an estimate of the standard deviation of $\epsilon$. Roughly speaking, it is the average amount that the response will deviate from the true regression line. It is calculated as: $RSE = \sqrt{\frac{1}{(n-2)}RSS} = \sqrt{\frac{1}{(n-2)}\sum_{i=1}^{n}(y_i - \hat{y_i})^2}$.
+
+In the case of advertising data, the RSE is 3.26. This means that the actual sales in each market deviate from the true regression line by approximately 3,260 units, on average. Another way to think about this is that even if the model were correct and the true values of the coefficients were known, any prediction of sales would still be off by about 3,260 units, on average.
+
+The RSE is considered a measure of the lack of fit of the model to the data. If the predictions obtained by fitting the model to the training data are close to the true outcome values, then the RSE will be small, and we can conclude that the model fits the data well. If the predictions are not close to the true outcome values, then the RSE will be large, and we can conclude that the model does not fit the data well.
+
+### R-squared
+The RSE is measured in the units of Y, and it is therefore not always clear what constitutes a good RSE. The R-squared statistic provides an alternative measure of fit. It takes the form of a proportion and so it always takes on a value between 0 and 1, and is independent of the scale of Y.
+
+To calculate the R-squared statistic, we use the formula: $R^2 = \frac{TSS - RSS}{TSS} = 1 - \frac{RSS}{TSS}$, where TSS is the total sum of squares, which measures the total variance in the response Y, and is defined as: $TSS = \sum_{i=1}^{n}(y_i - \bar{y})^2$. The TSS measures the total variance in the response Y, and can be thought of as the amount of variability inherent in the response before the regression is performed. In contrast, the RSS measures the amount of variability that is left unexplained after performing the regression. Hence, TSS − RSS measures the amount of variability in the response that is explained (or removed) by performing the regression, and $R^2$ measures the proportion of variability in Y that can be explained using X. An $R^2$ statistic that is close to 1 indicates that a large proportion of the variability in the response has been explained by the regression. An $R^2$ statistic that is close to 0 indicates that the regression did not explain much of the variability in the response and this might occur because the linear model is wrong, or because the inherent error $\epsilon$ is high.
+
+# Multiple Linear Regression
+The simple linear regression model assumes that there is a linear relationship between the response and the predictor. However, this is not always the case. In the advertising data, we have three predictors: TV, radio, and newspaper. We can extend the simple linear regression model to include multiple predictors. This is known as multiple linear regression.
+
+Given p predictors, the multiple linear regression model takes the form: $Y ≈ \beta_0 + \beta_1X_1 + \beta_2X_2 + ... + \beta_pX_p + \epsilon$. Each $X_j$ represents a different predictor, and each $\beta_j$ quantifies the association between that predictor and the response. The $\beta_0$ term is the intercept, and is the expected value of Y when all of the predictors are equal to zero. We can interpret $\beta_j$ as the average effect on Y of a one unit increase in $X_j$, holding all other predictors fixed.
+
+The coefficients $\beta_0, \beta_1, \beta_2, ..., \beta_p$ are unknown, and must be estimated based on the training data. We estimate these coefficients using the least squares approach as before.
+We choose $\hat{\beta_0}, \hat{\beta_1}, \hat{\beta_2}, ..., \hat{\beta_p}$ to minimize the residual sum of squares (RSS), given by: $RSS = \sum_{i=1}^{n}(y_i - \hat{y_i})^2 = \sum_{i=1}^{n}(y_i - \hat{\beta_0} - \hat{\beta_1}x_{i1} - \hat{\beta_2}x_{i2} - ... - \hat{\beta_p}x_{ip})^2$.
+
+
+
+```{r}
+lm.fit <- lm(sales ~ TV + radio + newspaper, data = dati)
+summary(lm.fit)
+
+```
