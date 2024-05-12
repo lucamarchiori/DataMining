@@ -1,0 +1,311 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={BeyondLinearityChapter},
+  pdfauthor={Luca Marchiori},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{BeyondLinearityChapter}
+\author{Luca Marchiori}
+\date{2024-05-11}
+
+\begin{document}
+\maketitle
+
+\hypertarget{polynomial-regression}{%
+\subsection{Polynomial Regression}\label{polynomial-regression}}
+
+Polynomial regression extends the linear model by adding extra pre
+dictors, obtained by raising each of the original predictors to a power.
+This approach provides a simple way to provide a nonlinear fit to data.
+For large enough degree d, a polynomial regression allows us to produce
+an extremely non-linear curve. Generally speaking, it is unusual to use
+d greater than 3 or 4 because for large values of d, the polynomial
+curve can become overly flexible and can take on some very strange
+shapes.
+
+\[
+Y = \beta_0 + \beta_1X + \beta_2X^2 + \beta_3X^3 + ... + \beta_dX^d + \epsilon
+\] Notice that the coefficients can be easily estimated using least
+squares linear regression because this is just a standard linear model
+with predictors \(X, X^2, X^3, ..., X^d\).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit a linear model, using the lm() function, in order to predict wage using a fourth{-}degree polynomial in age}
+\NormalTok{fit }\OtherTok{\textless{}{-}} \FunctionTok{lm}\NormalTok{(wage }\SpecialCharTok{\textasciitilde{}} \FunctionTok{poly}\NormalTok{(age , }\DecValTok{4}\NormalTok{), }\AttributeTok{data =}\NormalTok{ ds)}
+\FunctionTok{summary}\NormalTok{(fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Call:
+## lm(formula = wage ~ poly(age, 4), data = ds)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -98.707 -24.626  -4.993  15.217 203.693 
+## 
+## Coefficients:
+##                Estimate Std. Error t value Pr(>|t|)    
+## (Intercept)    111.7036     0.7287 153.283  < 2e-16 ***
+## poly(age, 4)1  447.0679    39.9148  11.201  < 2e-16 ***
+## poly(age, 4)2 -478.3158    39.9148 -11.983  < 2e-16 ***
+## poly(age, 4)3  125.5217    39.9148   3.145  0.00168 ** 
+## poly(age, 4)4  -77.9112    39.9148  -1.952  0.05104 .  
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 
+## Residual standard error: 39.91 on 2995 degrees of freedom
+## Multiple R-squared:  0.08626,    Adjusted R-squared:  0.08504 
+## F-statistic: 70.69 on 4 and 2995 DF,  p-value: < 2.2e-16
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Create a grid of values for age at which we want predictions}
+\NormalTok{age.grid }\OtherTok{\textless{}{-}} \FunctionTok{seq}\NormalTok{(}\DecValTok{0}\NormalTok{, }\DecValTok{100}\NormalTok{)}
+
+\CommentTok{\# Predict wage for all ages}
+\NormalTok{preds }\OtherTok{\textless{}{-}} \FunctionTok{predict}\NormalTok{(fit , }\AttributeTok{newdata =} \FunctionTok{list}\NormalTok{(}\AttributeTok{age =}\NormalTok{ age.grid), }\AttributeTok{se =} \ConstantTok{TRUE}\NormalTok{)}
+
+\CommentTok{\# Plot age and wage from the dataset}
+\FunctionTok{plot}\NormalTok{(ds}\SpecialCharTok{$}\NormalTok{age , ds}\SpecialCharTok{$}\NormalTok{wage , }\AttributeTok{cex =}\NormalTok{ .}\DecValTok{5}\NormalTok{, }\AttributeTok{col =} \StringTok{"darkgrey"}\NormalTok{)}
+
+\CommentTok{\# Predict wage for all ages}
+\FunctionTok{lines}\NormalTok{(age.grid , preds}\SpecialCharTok{$}\NormalTok{fit , }\AttributeTok{lwd =} \DecValTok{2}\NormalTok{, }\AttributeTok{col =} \StringTok{"blue"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Beyond-Linearity---Chapter-7_files/figure-latex/unnamed-chunk-1-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Choose the polynomial degree using cross{-}validation}
+\NormalTok{poly.mse}\OtherTok{=}\FunctionTok{c}\NormalTok{()}
+\ControlFlowTok{for}\NormalTok{(degree }\ControlFlowTok{in} \DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{)\{}
+\NormalTok{  fit}\OtherTok{=}\FunctionTok{glm}\NormalTok{(wage}\SpecialCharTok{\textasciitilde{}}\FunctionTok{poly}\NormalTok{(age,degree,}\AttributeTok{raw=}\ConstantTok{TRUE}\NormalTok{),}\AttributeTok{data=}\NormalTok{Wage)}
+\NormalTok{  cv }\OtherTok{=} \FunctionTok{cv.glm}\NormalTok{(fit,}\AttributeTok{data =}\NormalTok{ Wage,}\AttributeTok{K=}\DecValTok{10}\NormalTok{)}
+\NormalTok{  MSE}\OtherTok{=}\NormalTok{cv}\SpecialCharTok{$}\NormalTok{delta[}\DecValTok{1}\NormalTok{]}
+\NormalTok{  poly.mse}\OtherTok{=}\FunctionTok{c}\NormalTok{(poly.mse,MSE)}
+\NormalTok{\}}
+
+\NormalTok{degree.best }\OtherTok{=} \FunctionTok{which.min}\NormalTok{(poly.mse)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{step-functions}{%
+\subsection{Step Functions}\label{step-functions}}
+
+By using Step Functions, we break the range of X into bins, and fit a
+different constant in each bin. Unless there are natural breakpoints in
+the predictors, piece wise constant functions can miss the action. Step
+function approaches are very popular in bio statistics and epidemiology,
+among other disciplines. For example, 5-year age groups are often used
+to define the bins.
+
+Ww create cutpoints \(c_1, c_2, ..., c_K\) in the range of X, and then
+construct \(K + 1\) new variables: \[
+C_0(X) = I(X < c_1) \\
+C_1(X) = I(c_1 \leq X < c_2) \\
+C_2(X) = I(c_2 \leq X < c_3) \\
+... \\
+\] Note that \(I()\) is the indicator function that returns a 1 if the
+condition is true, and 0 otherwise (these are sometimes called dummy
+variables).
+
+It is then possible to use least squares to fit a linear model using
+\(C_0(X), C_1(X), ..., C_K(X)\) as predictors: \[
+Y = \beta_0 + \beta_1C_1(x_i) + \beta_2C_2(x_i) + ... + \beta_KC_K(x_i) + \epsilon
+\]
+
+\hypertarget{basis-functions}{%
+\subsection{Basis Functions}\label{basis-functions}}
+
+Polynomial and piecewise-constant regression models are in fact special
+cases of a basis function approach. \[
+y_i = \beta_0 + \beta_1b_1(x_i) + \beta_2b_2(x_i) + ... + \beta_Kb_K(x_i) + \epsilon
+\] where \(b_1(), b_2(), ..., b_K()\) are a set of functions typically
+fixed and known, and are not estimated from the data.
+
+\hypertarget{regression-splines}{%
+\subsection{Regression Splines}\label{regression-splines}}
+
+Piecewise polynomial regression involves fitting separate low-degree
+polynomials over different regions of \(X\). The points where the
+polynomial pieces meet are called knots.
+
+For example, a piecewise cubic polynomial works by fitting a cubic
+regression model of the form: \[
+y_i = \beta_0 + \beta_1x_i + \beta_2x_i^2 + \beta_3x_i^3 + \epsilon
+\] where \(\beta_0, \beta_1, \beta_2, \beta_3\) are different in
+different parts of the range of \(X\). Using more knots leads to a more
+flexible piecewise polynomial.
+
+\[
+y_i = \left\{\begin{matrix}
+ & \\ 
+ & 
+\end{matrix}\right.
+\]
+
+To avoid having discontinuities in the first and second derivatives at
+the knot locations, we can fit a piecewise polynomial under the
+constraint that the fitted curve must be continuous at each knot. This
+is known as a regression spline.
+
+To add smoothness to the model at the knot locations, we can require
+that not only the fitted curve is continuous at each knot, but also that
+its first and second derivatives are continuous. This is known as a
+smoothing spline. This regression splines can be somewhat complex since
+we must fit a piecewise degree-d polynomial under the constraint that it
+is continuous at all points, and that its first and second derivatives
+are also continuous. To do this, we can use basis functions.
+
+\[
+y_i = \beta_0 + \beta_1b_1(x_i) + \beta_2b_2(x_i) + ... + \beta_Kb_K(x_i) + \epsilon
+\] where \(b_1(), b_2(), ..., b_K()\) are basis functions and K are the
+number of knots. The most direct way to represent a cubic spline is to
+start off with a basis for a cubic polynomial (i.e.~\(x, x^2, x^3\)) and
+then add one truncated power basis function per knot.
+
+The regession spline is created by specifying a set of knots, producing
+a set of basis functions and then using least squares to estimate the
+spline coefficients.
+
+Unfortunately, splines can have high variance at the outer range of the
+predictors. A natural spline is a regression spline with additional
+boundary constraints: the function is required to be linear at the
+boundary (in the region where \(X\) is smaller than the smallest knot,
+and in the region where \(X\) is larger than the largest knot). This
+constraint makes the function more stable, and hence reduces the
+variance, at the boundaries.
+
+The regression spline is most flexible in regions that contain a lot of
+knots, because in those regions the polynomial coefficients can change
+rapidly. Hence, one option is to place more knots in places where we
+feel the function might vary most rapidly, and to place fewer knots
+where it seems more stable. While this option can work well, in practice
+it is common to place knots in a uniform fashion. One way to do this is
+to specify the desired degrees of freedom, and then have the software
+automatically place the corresponding number of knots at uniform
+quantiles of the data
+
+A good way to choose the number of knots (degrees of freedom) is to use
+cross-validation. We repeat cross validation for different numbers of
+knots, and choose the number of knots that minimizes the RSS.
+
+Regression splines often give superior results to polynomial regression.
+This is because unlike polynomials, which must use a high degree to
+produce flexible fits, splines introduce flexibility by increasing the
+number of knots but keeping the degree fixed. Generally, this approach
+produces more stable estimates. Splines also allow us to place more
+knots, and hence flexibility, over regions where the function f seems to
+be changing rapidly, and fewer knots where f appears more stable.
+
+\hypertarget{smoothing-splines}{%
+\subsection{Smoothing Splines}\label{smoothing-splines}}
+
+\end{document}

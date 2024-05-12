@@ -1,0 +1,38 @@
+---
+title: "Selection and Regularization - Chapter 6"
+author: "Luca Marchiori"
+date: "2024-05-10"
+output: html_document
+---
+
+# Selection and Regularization - Chapter 6
+
+We discuss in this chapter some ways in which the simple linear model can be improved, by replacing plain least squares fitting with some alternative fitting procedures. Alternative fitting procedures can yield better prediction accuracy and model interpretability.
+
+**Prediction Accuracy**
+If n, the number of observations, is much larger than p, the number of variables, then the least squares estimates tend to also have low variance, and hence will perform well on test observations. However, if n is not much larger than p, then there can be a lot of variability in the least squares fit, resulting in overfitting and consequently poor predictions on future observations not used in model training. And if p > n, then there is no longer a unique least squares coefficient estimate: there are infinitely many solutions.
+
+By constraining or shrinking the estimated coefficients, we can often substantially reduce the variance at the cost of a negligible increase in bias. This can lead to substantial improvements in the accuracy with which we can predict the response for observations not used in model training.
+
+**Model Interpretability**
+It is often the case that some or many of the variables used in a multiple regression model are in fact not associated with the response. Including such irrelevant variables leads to unnecessary complexity in the resulting model. We will see some approaches for automatically performing feature selection or variable selection, for excluding irrelevant variables from a multiple regression model.
+
+## Subset Selection
+This approach involves identifying a subset of the p predictors that we believe to be related to the response. We then fit a model using least squares on the reduced set of variables.
+
+### Best Subset Selection
+To perform best subset selection, we fit a separate least squares regression for each possible combination of the p predictors. We then look at all of the resulting models, and select the best one.
+
+## Shrinkage
+This approach involves fitting a model involving all p predictors. However, the estimated coefficients are shrunken towards zero relative to the least squares estimates. This shrinkage (also known as regularization) has the effect of reducing variance.
+
+
+
+
+
+
+
+
+
+
+

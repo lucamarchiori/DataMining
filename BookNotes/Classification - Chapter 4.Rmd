@@ -1,0 +1,312 @@
+---
+title: "ClassificationChapter"
+author: "Luca Marchiori"
+date: "2024-04-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(ISLR)
+```
+
+```{r}
+dati = Default
+summary(dati)
+str(dati)
+```
+
+## Visualization of data in charts
+```{r}
+plot(dati$balance, dati$income, type='p', col=ifelse(dati$default == "Yes", "darkred", "lightblue"), xlab = "CC Balance", ylab = "Income")
+boxplot(dati$balance ~ dati$default, xlab="Default", ylab = "CC Balance")
+boxplot(dati$income ~ dati$default, xlab = "Default", ylab = "Income")
+```
+
+## Linear model
+There are at least two reasons not to perform classification using a regression method: 
+- (a) a regression method cannot accommodate a qualitative response with more than two classes; 
+- (b) a regression method will not provide meaningful estimates of Pr(Y |X), even with just two classes. Thus, it is preferable to use a classification method that is truly suited for qualitative response values.
+
+If we use this approach to predict default=Yes using balance, then we obtain a linear model. Here we see the problem with this approach: for balances close to zero we predict a negative probability of default, instead, if we were to predict for very large balances, we would get values bigger than 1. These predictions are not sensible, since of course the true probability of default, regardless of credit card balance, must fall between 0 and 1. 
+
+This problem is not unique to the credit default data. Any time a straight line is fit to a binary response that is coded as 0 or 1, in principle we can always predict p(X) < 0 for some values of X and p(X) > 1 for others (unless the range of X is limited). To avoid this problem, we must model p(X) using a function that gives outputs between 0 and 1 for all values of X. Many functions meet this description. In logistic regression, we use the logistic function.
+
+```{r}
+# Create numeric version of factors in a new data set used for training
+trainData = data.frame(studentN = as.numeric(dati$student), defaultN = as.numeric(dati$default), balance = dati$balance, income = dati$income)
+
+# Fit the linear model
+fit = lm(trainData$defaultN ~ income + balance,data = trainData)
+
+# Test the linear model with an input similar to one in the dataset
+input <- data.frame(income = 24780, studentN = 0, balance = 500)
+predictedDefault <- predict(fit, newdata = input, type = "response")
+predictedDefault #It predicts default = 0.985
+
+# Test the linear model with an input strongly set to have default = 2 = YES (very low income and very high balance)
+input <- data.frame(income = 0, studentN = 0, balance = 10000)
+predictedDefault <- predict(fit, newdata = input, type = "response")
+predictedDefault #It predicts default = 2.22 that is more than default=2 ()
+
+plot(trainData$balance, trainData$defaultN, xlab="Default", ylab = "CC Balance")
+abline(fit$coefficients["(Intercept)"], fit$coefficients["balance"])
+```
+
+## Logistic Regression
+Logistic regression models the probability of default (between 0 and 1). Using a threshold we can decide if the probability is high enough to have a default = "Yes" or "No".
+
+In linear regression, we fit the line using the least squares method (minimize the sum of the squares of residuals). In logistic regression, since we have a different concept of "residual", it is not possible to use least squares and calculate $R^2$. Here, we fit the line using the maximum likelihood method.
+
+$$
+Pr(default = Yes | balance)
+$$
+For low balances we now predict the probability of default as close to, but never below, zero. Likewise, for high balances we predict a default probability close to, but never above, one. The logistic function will always produce an S-shaped curve of this form, and so regardless of the value of X, we will obtain a sensible prediction.
+$$
+p(X) = \frac{e^{\beta_0 + \beta_1 X}}{1 + {\beta_0 + \beta_1 X}}
+$$
+$$
+odds = \frac{p(X)}{1-p(X)} = e^{\beta_0 + \beta_1 X}
+$$
+The odds can take any value between 0 and inf. Values of the odds close to 0 and inf indicate very low and very high probabilities of default, respectively.
+
+Example 1:
+1 in 5 people will default: 1/5 = 0.2
+The odd is $\frac{0.2}{1-0.2} = 1/4 = 0.25 $
+
+Example 2:
+9 in 10 people will default: 9/10 = 0.9
+The odd is $\frac{0.9}{1-0.9} = 9 $
+
+```{r}
+library("aod")
+
+trainData = NULL
+trainData = data.frame(student = dati$student, default = dati$default, balance = dati$balance, income = dati$income)
+# Fitting a logistic regression model
+fit <- glm(default ~ student + balance + income, data = trainData, family = "binomial")
+summary(fit)
+
+
+# Plot the logistic regression model for each value of balance
+balance_seq <- seq(min(trainData$balance), max(trainData$balance), length.out = 100) # Generate sequence of values for balance
+# Create data frame with balanced values and constant income and studentN
+plot_data <- expand.grid(income = mean(trainData$income), student = trainData$student, balance = balance_seq)
+# Predict probabilities using the logistic regression model
+plot_data$predicted_prob <- predict(fit, newdata = plot_data, type = "response")
+
+# Plot the logistic model
+library(ggplot2)
+ggplot(data = trainData, aes(x = balance, y = as.numeric(default)-1)) +
+  geom_point() +
+  geom_line(data = plot_data, aes(y = predicted_prob), color = "blue") +
+  labs(x = "Balance", y = "Default Probability") +
+  ggtitle("Logistic Regression Model")
+
+
+# Using the example data from the linear model above, try to predict the default
+input <- data.frame(income = 24780, student = "No", balance = 500)
+predictedDefault <- predict(fit, newdata = input, type = "response")
+predictedDefault #It predicts default = 0.0003612339
+
+# Test the linear model with an input strongly set to have default = 2 = YES (very low income and very high balance)
+input <- data.frame(income = 0, student = "No", balance = 10000)
+predictedDefault <- predict(fit, newdata = input, type = "response")
+predictedDefault #It predicts default = 1
+
+# Correctly, the predicted values are between 0 and 1
+
+```
+
+Even tho Logistic Regression is one of the most popular linear classification models that perform well for binary classification but falls short in the case of multiple classification problems with well-separated classes. While LDA handles these quite efficiently.
+
+## Linear Discriminant Analysis
+Linear discriminant analysis (LDA) is a method used in statistics to find a linear combination of features that characterizes or separates two or more classes. The resulting combination may be used as a linear classifier, or, more commonly, for dimensional reduction before later classification.
+
+LDA operates by projecting features from a higher-dimensional space into a lower-dimensional one and aims to find a straight line or plane that best separates these groups while minimizing overlap within each class.
+When there are 3 categories, LDA finds 2 new axes because the 3 means for each category define a plane. If there are n categories, LDA finds n-1 new axes.
+
+The new axes are found in order to maximize the ratio between between class scatter and within class scatter.
+$$ 
+\frac{d_1^2 + d_2^2 + d_n^2}{s_1^2 + s_2^2 + s_n^2}
+$$
+Where $d_1^2 + d_n^2$ is the sum of the squared distances from the central point. Note that $d$ is the distance from the central point of each class to the central point of all the classes. $s_1^2 + s_n^2$ is the sum of the squared scatter from each category.
+
+It assumes that the data follows a normal or Gaussian distribution, meaning each feature forms a bell-shaped curve when plotted and that each of the classes has identical covariance matrices.
+
+Linear Discriminant Analysis (LDA) is like Principal Component Analysis (PCA), in that it provides a way plot data with a lot of dimensions onto a simple 2-D graph. However, LDA focuses on maximizing the separability among the known categories. Just like PCA, LDA ranks the axes in order of importance. So we can use LDA to reduce dimensions just like PCA. Just like PCA, the new axes created by LDA have loading scores that tell us which variables had the largest influence on each axis.
+
+### Implementation
+Now we will perform LDA on the Default data. In R, we fit an LDA model using the lda() function, which is part of the MASS library. Notice that the lda() syntax for the lda() function is identical to that of lm(), and to that of glm() except for the absence of the family option. 
+
+```{r}
+library(MASS)
+library(ggplot2)
+library(gridExtra)
+
+resLda <- lda(formula = default ~ scale(balance) + scale(income), data = Default)
+resLda
+
+predLda <- predict(resLda)
+str(predLda)
+
+dati$predProbLda <- predLda$posterior[,"Yes"]
+dati$predClassLda <- predLda$class
+
+plotData <- ggplot(data = Default,
+    mapping = aes(x = balance, y = income, color = default, shape = student)) +
+    geom_point(geom = "point", stat = "identity", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Original data")
+
+
+## Plot (probability)
+plotLdaProb <- ggplot(data = dati,
+    mapping = aes(x = balance, y = income, color = predProbLda, shape = student)) +
+    geom_point(geom = "point", alpha = 0.5) +
+    scale_color_gradient(low = "yellow", high = "red") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted probability of outcome (LDA)")
+grid.arrange(plotData, plotLdaProb, ncol = 2)
+
+## Plot (classification)
+plotLdaClass <- ggplot(data = dati,
+    mapping = aes(x = balance, y = income, color = predClassLda, shape = student)) +
+    geom_point(geom = "point", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted outcome (LDA)")
+grid.arrange(plotData, plotLdaClass, ncol = 2)
+
+```
+
+## Quadratic Discriminant Analysis
+
+LDA assumes that the observations within each class are drawn from a multivariate Gaussian distribution with a class-specific mean vector and a covariance matrix that is common to all K classes. Quadratic discriminant analysis (QDA) provides an alternative approach. The QDA classifier results from assuming that the observations discriminant from each class are drawn from a Gaussian distribution, and plugging estimates for the parameters into Bayes’ theorem in order to perform prediction. However, unlike LDA, QDA assumes that each class has its own covariance matrix.
+
+LDA is a much less flexible classifier than QDA, and so has substantially lower variance. This can potentially lead to improved prediction performance. But there is a trade-off: if LDA’s assumption that the K classes share a common covariance matrix is badly off, then LDA can suffer from high bias. Roughly speaking, LDA tends to be a better bet than QDA if there are relatively few training observations and so reducing variance is crucial. In contrast, QDA is recommended if the training set is very large, so that the variance of the classifier is not a major concern, or if the assumption of a common covariance matrix for the K classes is clearly untenable.
+
+```{r}
+library(MASS)
+library(ggplot2)
+library(gridExtra)
+
+resQda <- qda(formula = default ~ scale(balance) + scale(income), data = Default)
+resQda
+
+predQda <- predict(resQda)
+str(predQda)
+
+dati$predProbQda <- predQda$posterior[,"Yes"]
+dati$predClassQda <- predQda$class
+
+plotData <- ggplot(data = Default,
+    mapping = aes(x = balance, y = income, color = default, shape = student)) +
+    geom_point(geom = "point", stat = "identity", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Original data")
+
+
+## Plot (probability)
+plotLdaProb <- ggplot(data = dati,
+    mapping = aes(x = balance, y = income, color = predProbQda, shape = student)) +
+    geom_point(geom = "point", alpha = 0.5) +
+    scale_color_gradient(low = "yellow", high = "red") +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted probability of outcome (LDA)")
+grid.arrange(plotData, plotLdaProb, ncol = 2)
+
+## Plot (classification)
+plotLdaClass <- ggplot(data = dati,
+    mapping = aes(x = balance, y = income, color = predClassQda, shape = student)) +
+    geom_point(geom = "point", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Predicted outcome (LDA)")
+grid.arrange(plotData, plotLdaClass, ncol = 2)
+
+```
+# KNN - K Nearest Neighbors
+
+In theory we would always like to predict qualitative responses using the Bayes classifier. But for real data, we do not know the conditional distribution of Y given X, and so computing the Bayes classifier is impossible. Therefore, the Bayes classifier serves as an unattainable gold standard against which to compare other methods. Many approaches attempt to estimate the conditional distribution of Y given X, and then classify a given observation to the class with highest estimated probability.
+
+One such method is the K-nearest neighbors (KNN) classifier. KNN is a completely non-parametric approach: no assumptions are made about the shape of the decision boundary.
+
+Given a positive integer $K$ and a test observation $x_0$, the KNN classifier first identifies the neighbors $K$ points in the training data that are closest to $x_0$, represented by $N_0$. It then estimates the conditional probability for class $j$ as the fraction of points in $N_0$ whose response values equal $j$: $Pr(Y = j | X = x_0) = \frac{1}{K} \sum_{i \in N_0} I(y_i = j)$.
+
+Imagine a plot consisting of six blue and six orange observations. Our goal is to make a prediction for a new point labeled by a black cross. Suppose that we choose K = 3. Then KNN will first identify the three observations that are closest to the cross. It consists of two blue points and one orange point, resulting in estimated probabilities of 2/3 for the blue class and 1/3 for the orange class. Hence KNN will predict that the black cross belongs to the blue class.
+
+Despite the fact that it is a very simple approach, KNN can often produce classifiers that are surprisingly close to the optimal Bayes classifier. The choice of K has a drastic effect on the KNN classifier obtained. In general, a small value of K provides the most flexible fit, which will have low bias but high variance. As K grows, the method becomes less flexible and produces a decision boundary that is close to linear. This corresponds to a low-variance but high-bias classifier.
+
+## KNN vs LDA / QDA / Logistic Regression
+Because KNN is completely non-parametric, we can expect this approach to dominate LDA and logistic regression when the decision boundary is highly non-linear, provided that n is very large and p is small. The decision boundary is the dividing line between regions where the algorithm would predict one class versus another.
+
+In order to provide accurate classification, KNN requires a lot of observations relative to the number of predictors, that is n much larger than p. This has to do with the fact that KNN is non-parametric, and thus tends to reduce the bias while incurring a lot of variance.
+
+In settings where the decision boundary is non-linear but n is only modest, or p is not very small, then QDA may be preferred to KNN. This is because QDA can provide a non-linear decision boundary while taking advantage of a parametric form, which means that it requires a smaller sample size for accurate classification, relative to KNN. Unlike logistic regression, KNN does not tell us which predictors are important: we don’t get a table of coefficients.
+
+
+```{r}
+set.seed(69)
+library(ISLR)
+library(caret)
+library(MASS)
+library(ggplot2)
+library(gridExtra)
+
+#  Split in train and test
+defIndex <- sample(nrow(Default), 8000)
+defaultTrain = Default[defIndex, ]
+defaultTest = Default[-defIndex, ]
+defaultTest$default = NULL
+  
+ctrl <- trainControl(method="repeatedcv",repeats = 1)
+knnFit <- train(default ~ ., data = defaultTrain, method = "knn", trControl = ctrl, preProcess = c("center","scale"))
+
+#Output of kNN fit
+knnFit
+
+# Predict default using test data
+predictions <- predict(knnFit, newdata = defaultTest)
+defaultTest$predictedDefault = predictions
+
+# Check the first few predictions
+head(predictions)
+
+trainData <- ggplot(data = defaultTrain,
+    mapping = aes(x = balance, y = income, color = default, shape = student)) +
+    geom_point(geom = "point", stat = "identity", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Train data")
+
+testData <- ggplot(data = defaultTest,
+    mapping = aes(x = balance, y = income, color = predictedDefault, shape = student)) +
+    geom_point(geom = "point", stat = "identity", alpha = 0.5) +
+    scale_color_manual(values = c("No" = "yellow", "Yes" = "red")) +
+    theme_bw() +
+    theme(legend.key = element_blank()) +
+    labs(title = "Train data")
+
+
+grid.arrange(plotData, testData, ncol = 2)
+
+
+
+```
+
+
+
+
+
+
+
+
