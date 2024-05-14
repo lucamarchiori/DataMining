@@ -161,46 +161,51 @@ Because the model is additive, we can examine the effect of each $$X_j$$ on $$y$
 The smoothness of the function $$f_j$$ for the variable $$X_j$$ can be summarized via degrees of freedom.
 
 ```{r}
-library(splines)
-library(gam)
+library(caret)
 
-# Fit a GAM to predict wage using smoothing splines for age (df=4) and year (df=5)
-gam1 <- gam(wage ~ year, data = ds)
+ds$fixedEducation <- as.factor(ds$education)
 
-# Plot the GAM
-par(mfrow = c(1, 2))
-plot.Gam(gam1, se = TRUE, col = "blue")
+caretGam <- caret::train(wage ~ year + age + fixedEducation, data = ds, method = "gam",
+                          preProcess = c('center', 'scale'), 
+            family = "gaussian",  trControl = trainControl(method = "LOOCV", number=1, repeats=1))
 
-# Other GAMs
-# Model1: no year + 5 df age + education
-# Model2: linear year + 5 df age + education
-# Model3: 4 df year + 5 df age + education
-
-gam.m3 <- gam(wage ~ s(year, 4) + s(age, 5) + education, data = ds)
-gam.m2 <- gam(wage ~ year + s(age, 5) + education, data = ds)
-gam.m1 <- gam(wage ~ s(age, 5) + education, data = ds)
-
-# Compare the models
-anova(gam.m1, gam.m2, gam.m3, test = "F")
-
-# The best model is the one with linear year and 5 df age
+caretGam <- caret::train(wage ~ year + age + fixedEducation, data = ds, method = "gam",
+                          preProcess = c('center', 'scale'), 
+            family = "gaussian",  trControl = trainControl(method = "none"))
 
 ```
-
-
 ```{r}
-library(splines)
-library(mgcv)
+gamModel <- caretGam$finalModel
+summary(gamModel)
+gamModel$formula
+vis.gam(gamModel, view = c("age", "year"))
 
-gamFormula <- formula(wage ~ year + age + education)
-gam2 <- mgcv::gam(wage ~ year + age + education, family = gaussian, data = ds)
 
-#plot.gam(gam1, all.terms = TRUE, seWithMean = TRUE)
-plot(gam2)
-str(gam2)
+# Plot the effect of age on wage
+plot.gam(gamModel, select = 1, shade = TRUE)
 
+# Plot the effect of year on wage
+# Generate a sequence of years for plotting
+years <- seq(min(ds$year), max(ds$year), by = 1)
+# Predict wages for each year using the model
+predicted_wages <- predict(gamModel, newdata = data.frame(year = years, age = median(ds$age)), type = "response")
+# Plot the predicted wages against the years
+plot(years, predicted_wages, type = "l", xlab = "Year", ylab = "Wage", main = "Predicted Wage vs. Year")
+
+
+# Generate a sequence of ages for plotting
+ages <- seq(min(ds$age), max(ds$age), by = 1)
+# Predict wages for each age using the model
+predicted_wages <- predict(gamModel, newdata = data.frame(year = median(ds$year), age = ages), type = "response")
+# Plot the predicted wages against the ages
+plot(ages, predicted_wages, type = "l", xlab = "Age", ylab = "Wage", main = "Predicted Wage vs. Age")
+
+
+# Plot age and wage from the dataset
+plot(ds$age , ds$wage , cex = .5, col = "darkgrey")
 
 ```
+
 
 ### GAMs for Classification
 
