@@ -139,6 +139,74 @@ In fitting a smoothing spline, we do not need to select the number of knots, as 
 
 
 
+## Generalized Additive Models
+Until now we have explored approaches for fitting a non-linear function to a single predictor. However, in many cases we have more than one predictor, and we would like to extend the non-linear regression models to accommodate multiple predictors. One way to do this is to use a generalized additive model (GAM).
+
+### GAMs for Regression
+
+Multiple linear regression model (chapter 3):
+$$
+Y = \beta_0 + \beta_1X_1 + \beta_2X_2 + ... + \beta_pX_p + \epsilon
+$$
+Multiple non linear regression model (additive model):
+$$
+y_i = \beta_0 + f_1(x_{i1}) + f_2(x_{i2}) + ... + f_p(x_{ip}) + \epsilon = \beta_0 + \sum_{j=1}^{p} f_j(x_{ij}) + \epsilon
+$$
+Each non-linear function for each predictor is calculated separately and then added togheter.
+
+GAMs allow us to fit a non-linear $$f_i$$ to each $$X_j$$, so that we can automatically model non-linear relationships that standard linear regression will miss. This means that we do not need to manually try out many different transformations on each variable individually.
+
+The non-linear fits can potentially make more accurate predictions for the response $$Y$$.
+Because the model is additive, we can examine the effect of each $$X_j$$ on $$y$$ individually while holding all of the other variables fixed.
+The smoothness of the function $$f_j$$ for the variable $$X_j$$ can be summarized via degrees of freedom.
+
+```{r}
+library(splines)
+library(gam)
+
+# Fit a GAM to predict wage using smoothing splines for age (df=4) and year (df=5)
+gam1 <- gam(wage ~ year, data = ds)
+
+# Plot the GAM
+par(mfrow = c(1, 2))
+plot.Gam(gam1, se = TRUE, col = "blue")
+
+# Other GAMs
+# Model1: no year + 5 df age + education
+# Model2: linear year + 5 df age + education
+# Model3: 4 df year + 5 df age + education
+
+gam.m3 <- gam(wage ~ s(year, 4) + s(age, 5) + education, data = ds)
+gam.m2 <- gam(wage ~ year + s(age, 5) + education, data = ds)
+gam.m1 <- gam(wage ~ s(age, 5) + education, data = ds)
+
+# Compare the models
+anova(gam.m1, gam.m2, gam.m3, test = "F")
+
+# The best model is the one with linear year and 5 df age
+
+```
+
+
+```{r}
+library(splines)
+library(mgcv)
+
+gamFormula <- formula(wage ~ year + age + education)
+gam2 <- mgcv::gam(wage ~ year + age + education, family = gaussian, data = ds)
+
+#plot.gam(gam1, all.terms = TRUE, seWithMean = TRUE)
+plot(gam2)
+str(gam2)
+
+
+```
+
+### GAMs for Classification
+
+TODO
+
+
 
 
 
