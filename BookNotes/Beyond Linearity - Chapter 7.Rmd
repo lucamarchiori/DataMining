@@ -169,13 +169,25 @@ ds$education <- gsub('3. Some College', 'SomeCollege', ds$education)
 ds$education <- gsub('4. College Grad', 'College', ds$education)
 ds$education <- gsub('5. Advanced Degree', 'AdvancedDegree', ds$education)
 
+ds$race <- gsub('1. White', 'White', ds$race)
+ds$race <- gsub('2. Black', 'Black', ds$race)
+ds$race <- gsub('3. Asian', 'Asian', ds$race)
+ds$race <- gsub('4. Other', 'Other', ds$race)
 
-caretGam <- caret::train(wage ~ age + year + education,
+ds$health_ins <- gsub('1. Yes', 'Yes', ds$health_ins)
+ds$health_ins <- gsub('2. No', 'No', ds$health_ins)
+
+ds$health <- gsub('1. <=Good', 'ltGood', ds$health)
+ds$health <- gsub('2. >=Very Good', 'gtVeryGood', ds$health)
+
+
+caretGam <- caret::train(wage ~ age + year + education + race + health_ins + health,
                          data = ds, 
                          method = "bam",
                          preProcess = c('center', 'scale'), 
                          family = "gaussian",
-                         trControl = trainControl(method = "CV", number=10))
+                         trControl = trainControl(method = "CV", number=2))
+                         
 ```
 
 
@@ -184,37 +196,8 @@ gamModel <- caretGam$finalModel
 summary(gamModel)
 gamModel$formula
 vis.gam(gamModel, view = c("age", "year"))
-
-
-# Plot the effect of age on wage
-plot.gam(gamModel, select = 1, shade = TRUE)
-
-# Plot the effect of year on wage
-# Generate a sequence of years for plotting
-years <- seq(min(ds$year), max(ds$year), by = 1)
-# Predict wages for each year using the model
-predicted_wages <- predict(gamModel, newdata = data.frame(year = years, age = median(customDs$age)), type = "response")
-# Plot the predicted wages against the years
-plot(years, predicted_wages, type = "l", xlab = "Year", ylab = "Wage", main = "Predicted Wage vs. Year")
-
-
-# Generate a sequence of ages for plotting
-ages <- seq(min(ds$age), max(ds$age), by = 1)
-# Predict wages for each age using the model
-predicted_wages <- predict(gamModel, newdata = data.frame(year = median(ds$year), age = ages), type = "response")
-# Plot the predicted wages against the ages
-plot(ages, predicted_wages, type = "l", xlab = "Age", ylab = "Wage", main = "Predicted Wage vs. Age")
-
-
-# Plot age and wage from the dataset
-plot(ds$age , ds$wage , cex = .5, col = "darkgrey")
-
+plot.gam(gamModel, shade = TRUE)
 ```
-
-
-### GAMs for Classification
-
-TODO
 
 
 
