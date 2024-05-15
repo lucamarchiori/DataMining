@@ -163,22 +163,19 @@ The smoothness of the function $$f_j$$ for the variable $$X_j$$ can be summarize
 ```{r}
 library(caret)
 
-customDs = data.frame(wage = ds$wage, year = ds$year, age = ds$age)
-dummy_education <- model.matrix(~ education - 1, data = ds)
-customDs <-cbind(customDs, dummy_education)
+ds$education <- gsub('1. < HS Grad', 'ltHS', ds$education)
+ds$education <- gsub('2. HS Grad', 'HS', ds$education)
+ds$education <- gsub('3. Some College', 'SomeCollege', ds$education)
+ds$education <- gsub('4. College Grad', 'College', ds$education)
+ds$education <- gsub('5. Advanced Degree', 'AdvancedDegree', ds$education)
 
-names(customDs)[names(customDs) == 'education1. < HS Grad'] <- 'ltHS'
-names(customDs)[names(customDs) == 'education2. HS Grad'] <- 'HS'
-names(customDs)[names(customDs) == 'education3. Some College'] <- 'SomeCollege'
-names(customDs)[names(customDs) == 'education4. College Grad'] <- 'College'
-names(customDs)[names(customDs) == 'education5. Advanced Degree'] <- 'AdvancedDegree'
 
-caretGam <- caret::train(wage ~ . ,
-                         data = customDs, 
+caretGam <- caret::train(wage ~ age + year + education,
+                         data = ds, 
                          method = "bam",
                          preProcess = c('center', 'scale'), 
                          family = "gaussian",
-                         trControl = trainControl(method = "LOOCV", number=1, repeats=1))
+                         trControl = trainControl(method = "CV", number=10))
 ```
 
 
@@ -196,7 +193,7 @@ plot.gam(gamModel, select = 1, shade = TRUE)
 # Generate a sequence of years for plotting
 years <- seq(min(ds$year), max(ds$year), by = 1)
 # Predict wages for each year using the model
-predicted_wages <- predict(gamModel, newdata = data.frame(year = years, age = median(ds$age)), type = "response")
+predicted_wages <- predict(gamModel, newdata = data.frame(year = years, age = median(customDs$age)), type = "response")
 # Plot the predicted wages against the years
 plot(years, predicted_wages, type = "l", xlab = "Year", ylab = "Wage", main = "Predicted Wage vs. Year")
 
