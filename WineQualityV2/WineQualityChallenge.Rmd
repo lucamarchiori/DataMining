@@ -1,0 +1,509 @@
+---
+title: "Wine Quality Challenge"
+author: "Luca Marchiori"
+date: "2024-03-27"
+output:
+  html_document: default
+  pdf_document: default
+---
+# Wine Quality Challenge
+## Instructions
+The inputs include objective tests (e.g. PH values) and the output is based on sensory data (median of at least 3 evaluations made by wine experts). Each expert graded the wine quality between 0 (very bad) and 10 (very excellent).
+
+Submissions are evaluated on Root-Mean-Squared-Error (RMSE) between the predicted value and the observed quality. 
+
+RMSE = sqrt(mean((y – haty)^2)) 
+
+## Dataset colums
+1. fixed acidity
+2. volatile acidity
+3. citric acid
+4. residual sugar
+5. chlorides
+6. free sulfur dioxide
+7. total sulfur dioxide
+8. density
+9. pH
+10. sulphates
+11. alcohol
+12. quality (score between 0 and 10)
+
+## Init
+```{r}
+# Load libraries
+library(caret)
+library(ggplot2)
+library(corrplot)
+library(ggbiplot)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+#Clear the workspace
+rm(list=ls())
+```
+
+## Data import
+```{r}
+# Load the training data
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+# Load the test data
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+```
+
+## Exploratory Data Analysis
+```{r}
+# Compactly Display the Structure of an Arbitrary R Object
+str(train)
+
+# Take an initial view of the dataset
+summary(train)
+```
+All the features are numeric, no qualitative data is present. The quality is the target variable and since it can be considered as a continuous variable, we can use regression models to predict it.
+
+### Scatterplots
+With the following scatterplots, we can see the relationship between the quality and the other features. Each level of quality is represented by a different color.
+```{r}
+# Scatterplot matrix, with different colors for each quality level
+pairs(train, col = train$quality, upper.panel = NULL, pch = 19, cex = 0.5)
+
+# Single scatterplots of features against quality
+# plot(train$alcohol, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$total.sulfur.dioxide, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$free.sulfur.dioxide, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$volatile.acidity, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$fixed.acidity, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$pH, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$density, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$sulphates, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$chlorides, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$residual.sugar, train$quality, col = train$quality, pch = 19, cex = 0.5)
+# plot(train$citric.acid, train$quality, col = train$quality, pch = 19, cex = 0.5)
+
+```
+
+### Principal Component Analysis
+```{r}
+# Principal Component Analysis
+pca <- prcomp(train[,1:12], scale = TRUE)
+summary(pca)
+
+# Biplot with GGplot2
+ggbiplot::ggbiplot(pca, obs.scale = 1, var.scale = 1, groups = train$quality, ellipse = TRUE, circle = TRUE, varname.size = 3, varname.adjust = 3, varname.color = "orange", varname.face = "bold") +
+  theme_minimal() +
+  theme(legend.title = element_text(size = 10), legend.text = element_text(size = 10)) +
+  ggtitle("PCA Biplot")
+```
+
+### Decision trees
+```{r}
+
+# Decision tree
+
+# Fit a complete decision tree
+dTreefit <- rpart(quality ~ ., data = train, method = "anova", cp = 0.005)
+
+# Plot the decision tree
+rpart.plot(fit, type = 4, extra = 101, under = TRUE, fallen.leaves = TRUE, cex = 0.5, tweak = 1.2)
+
+# Fit a decision tree on a few features
+dTreefit <- rpart(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - density, data=train)
+rpart.plot(dTreefit)
+yhat = predict(dTreefit, newdata=test)
+write.table(file="fitDecisionTree.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+
+confusionMatrix(yhat, test$quality)
+
+```
+
+### Random forest
+```{r}
+rForestfit <- randomForest(quality ~ alcohol + volatile.acidity + citric.acid + density + pH + sulphates, train)
+yhat = predict(rForestfit, newdata=test)
+write.table(file="fitRandomForest", yhat, row.names = FALSE, col.names = FALSE)
+```
+
+
+### Correlation heatmap
+```{r}
+corrplot(cor(train[,1:12]), method = "number", tl.col = "black", tl.cex = 0.7, number.cex = 0.7)
+```
+
+
+<!-- ### Fit a basic linear model -->
+The lm function is used to create linear models.
+`quality ~ .` is the formula provided to the lm() function. In R modeling formulas, the tilde ~ separates the outcome variable from the predictor variables. In this case, quality is the outcome variable, and . means "all other variables in the data frame". So essentially, it's saying "predict quality using all other variables in the train data frame".
+
+`data=train` specifies the data frame to be used for fitting the model. In this case, it's using the train data frame.
+
+`predict()` is a function in R used to generate predictions from various types of models, including linear regression models. The argument `newdata=test` specifies the data frame (test) for which we want to predict the outcome quality variable.
+
+In summary, use the linear regression model (`fit`) to predict the outcome variable for the observations in the test data frame, and store these predictions in the variable `yhat`.
+
+```{r}
+fit = lm(quality ~ ., data=train)
+summary(fit)
+yhat = predict(fit, newdata=test)
+
+# Put the prediction in a file for the submission on the platform
+write.table(file="fitLinearModelVBasic.txt", yhat, row.names = FALSE, col.names = FALSE)
+```
+
+## Computing Minimal Squared Error
+MSE (Mean Squared Error) is a common metric for evaluating the performance of regression models, by comparing the observed values `y` with the predicted values `yhat` generated by the provided `model`.
+```{r}
+MSE <- function(y, model){
+  yhat = predict(model) # Estimated y computed on the basis of the features
+  mean((y-yhat)^2)
+}
+
+RMSE <- function(y, model){
+  sqrt(MSE(y,model))
+}
+```
+
+## Get MSE for basic linear model
+```{r}
+mse = MSE(y=train$quality, model=fit)
+# Square root of MSE
+sqrt(mse)
+```
+
+```{r}
+#library(ggplot2)
+#require(graphics)
+#pairs(train)
+#ggplot(cor(train))
+
+#ggcorrplot(cor(train))
+#heatmap(cor(train))
+
+#plot(train$alcohol, train$quality)
+#plot(train$total.sulfur.dioxide, train$free.sulfur.dioxide)
+#abline(fit)
+#cor(train)
+```
+
+## Optimizing linear model
+Create a new linear model without considering citric.acid, chlorides and total.sulfur.dioxide
+We get a SQMSE of 0.7534613 which is good
+```{r}
+fit_m3 = lm(quality ~ . -citric.acid -chlorides -total.sulfur.dioxide, data=train)
+yhat = predict(fit_m3, newdata=test)
+RMSE(y=train$quality, model=fit_m3)
+write.table(file="fitLinearModelV2.txt", yhat, row.names = FALSE, col.names = FALSE)
+```
+
+Taking out also density, leads to a RMSE of 0.7583856 which is worse
+```{r}
+fit_m3n2 = lm(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - density, data=train) 
+yhat = predict(fit_m3n2, newdata=test)
+RMSE(y=train$quality, model=fit_m3n2)
+```
+
+Taking out residual sugar but not density, leads to a RMSE of 0.7627304 which is worse
+```{r}
+fit_m3n3 = lm(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - residual.sugar, data=train) 
+yhat = predict(fit_m3n3, newdata=test)
+RMSE(y=train$quality, model=fit_m3n3)
+```
+
+
+
+
+# Cross-Validation
+
+## Validation set approach (5.1.1)
+Suppose that we would like to estimate the test error associated with fitting a particular statistical learning method on a set of observations. The validation set approach is a very simple strategy validation for this task: it involves randomly dividing the available set of observations into two parts, a training set and a validation set. The validation model is fit on the training set, and the fitted model is used to predict the set responses for the observations in the validation set. The resulting validation hold-out set set error rate, typically assessed using MSE in the case of a quantitative response, provides an estimate of the test error rate. In simpler words, the statistical learning method is fit on the training set, and its performance is evaluated on the validation set.
+
+If we repeat the process of randomly splitting the sample set into two parts, we will get a somewhat different estimate for the test MSE.
+
+Validation set approach drawbacks:
+1. The validation estimate of the test error rate can be highly variable, depending on precisely which observations are included in the training set and which observations are included in the validation set.
+2. Only a subset of the observations, those that are included in the training set rather than in the validation set, are used to fit the model. Since statistical methods tend to perform worse when trained on fewer observations, this suggests that the validation set error rate may tend to overestimate the test error rate for the model fit on the entire data set.
+
+## Leave-One-Out Cross-Validation (5.1.2)
+A set of n data points is repeatedly split into a training set (containing all but one observation), and a validation set that contains only that observation (shown in beige). The test error is then estimated by averaging the n resulting MSEs. The first training set contains all but observation 1, the second training set contains all but observation 2, and so forth.
+
+\[CV_{(n)} = \frac{1}{n} \cdot \sum_{i=1}^{n} MSE_i\]
+
+LOOC has far less bias since we repeatedly fit the statistical learning method using training sets that contain n − 1 observations, almost as many as are in the entire data set. This is in contrast to the validation set approach, in which the training set is typically around half the size of the original data set.
+The LOOCV approach tends not to overestimate the test error rate as much as the validation set approach does.
+Performing LOOCV multiple times will always yield the same results: there is no randomness in the training/validation set splits.
+
+LOOCV has the potential to be expensive to implement, since the model has to be fit n times. This can be very time consuming if n is large, and if each individual model is slow to fit.
+
+LOOCV is a special case of k-fold CV in which k is set to equal n. 
+
+## K-fold crossvalidation (5.1.3)
+We have to decide which portion of the dataset is for testing and what is for training. Of course we'd like to maximize both: maximizing the training data is useful to get the best possible result, while maximizing the test data is useful to get the best validation. A trade off is needed because all the point used in the training set cannot be used for the test set and vice-versa.
+
+We partition the dataset in K partitions (also known as folds). For example if we have 200 data point and K=10 we'll have 20 partitions of 10 data points each.
+
+Then, we run K separate learning experiments, each time selecting a different test set and using the remaining sets ad training data. At the end, we average the test results for those K experiments.
+
+LOOCV is a special case of k-fold CV in which k is set to equal n. What is the advantage of using k = 5 or k = 10 rather than k = n? The most obvious advantage is computational. LOOCV requires fitting the statistical learning method n times. This has the potential to be computationally expensive. 
+
+\[CV_{(k)} = \frac{1}{k} \cdot \sum_{i=1}^{k} MSE_i\]
+
+
+##Cross-Validation on Classification Problems (5.1.5)
+Cross-validation can also be a very useful approach in the classification setting when Y is qualitative. In this setting, cross-validation works just as described earlier, except that rather than using MSE to quantify test error, we instead use the number of misclassified observations.
+
+## K-Nearest Neighbors (KNN)
+
+### Homework assignment
+Choose a k for k-fold cross validation.
+Make the plot of RMSE based on train data and cross-validation as a function of 1/K (K of KNN).
+You can pre-select the most promising features to use in the KNN with the aim to improve the prediction accuracy. But be careful to the cross validation strategy to use.
+
+#### Execution
+We will now perform KNN using the knn() function, which is part of the knn() class library. Rather than a two-step approach in which we first fit the model and then we use the model to make predictions, knn() forms predictions using a single command.
+
+##### Personal code
+```{r}
+library(class)
+library(caret)
+
+k_values <- seq(from=10, to=50, by=5) # Define the values of K for cross-validation
+results <- data.frame(K = integer(), oneOverK = numeric(), RMSE_train = numeric(), RMSE_cv = numeric())
+
+# Perform k-fold cross-validation for each K value
+for (k in k_values) {
+  # Define the KNN control parameters for cross-validation
+  # number: the number of folds
+  ctrl <- trainControl(method = "cv", number = 5, savePredictions = TRUE)
+
+  # Define the KNN model
+  model <- train(quality ~ ., data = train, method = "knn", trControl = ctrl, tuneGrid = data.frame(k = k), preProcess = c("center","scale") )
+  
+  # Store results
+  results <- rbind(results, data.frame(K = model$results$k, oneOverK = 1/model$results$k, RMSE = model$results$RMSE))
+}
+
+# Plot RMSE based on train data and cross-validation
+
+oneOverK <- results$oneOverK
+RMSE <- results$RMSE
+ggplot(results, aes(x = oneOverK)) +
+  geom_line(aes(y = RMSE, color = "RMSE")) +
+  scale_color_manual(values = c("RMSE" = "blue")) +
+  #scale_x_continuous(expand=c(0, 0), limits=c(0, 0.2)) +
+  scale_y_continuous(expand=c(0, 0), limits=c(0, 1)) +
+  labs(x = "1/K", y = "RMSE") +
+  ggtitle("RMSE vs 1/K") +
+  theme_minimal()
+
+ggplot(results, aes(x = oneOverK)) +
+  geom_line(aes(y = RMSE, color = "RMSE")) +
+  scale_color_manual(values = c("RMSE" = "blue")) +
+  #scale_x_continuous(expand=c(0, 0), limits=c(0, 0.2)) +
+  #scale_y_continuous(expand=c(0, 0), limits=c(0, 1)) +
+  labs(x = "1/K", y = "RMSE") +
+  ggtitle("RMSE vs 1/K") +
+  theme_minimal()
+```
+##### Group code
+```{r}
+library("caret")
+library("ggplot2")
+library("lattice")
+
+set.seed(1234)
+rm(list = ls())
+data.trn <- read.csv("wineq_train.csv", stringsAsFactors=F)
+
+ctrl <- trainControl(method="cv", number=10) #10 fold cross validation
+
+K <- seq(5, 70, by=5)
+
+model <- train(quality ~ .,
+               method = "knn",
+               trControl = ctrl,
+               preProcess = c("center","scale"),
+               tuneGrid = data.frame(k=K),
+               data = data.trn)
+
+train_rmse <- rep(NA, length(K))
+i <- 0
+for (k in model$results$k){
+  modelCV <- train(quality ~ .,
+                 method = "knn",
+                 trControl = ctrl,
+                 preProcess = c("center","scale"),
+                 tuneGrid = data.frame(k=k),
+                 data = data.trn)
+  predictions_train <- predict(modelCV, newdata = data.trn)
+  train_rmse[i] <- sqrt(mean((data.trn$quality - predictions_train)^2))
+  i <- i + 1
+}
+
+plot(1/model$results$k, model$results$RMSE, type = "l", xlab = "1/k", ylab = "RMSE", main = "RMSE vs 1/k", col="red", ylim=c(0.63,0.73))
+points(1/K, train_rmse, type = "l", pch = 16, col = "blue")
+
+best_k = model$bestTune$k
+index = which.min(model$results$RMSE)
+points(1/best_k, model$results$RMSE[index], pch = "o", col = "black")
+legend("right", legend = c("Training RMSE", "CV RMSE", paste("Best result k=", best_k)), col = c("blue", "red", "black"), pch = 16)
+
+```
+
+
+# Subset Selection (6.1)
+## Best Subset Selection (6.1.1)
+
+\[R^2 = 1-\frac{RSS}{TSS}\]
+
+Find the best RMSE by trying all the possible combinations of features.
+```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+
+# Create all possible combinations of features
+all_features <- colnames(train)  # Assuming 'train' is your training data frame
+all_features <- setdiff(all_features, "quality")  # Remove the dependent variable
+feature_combinations <- lapply(1:length(all_features), function(x) combn(all_features, x))
+
+# Fit models and calculate RMSE for each combination
+best_rmse <- Inf
+best_model <- NULL
+for (i in seq_along(feature_combinations)) {
+  combinations <- feature_combinations[[i]]
+  for (j in 1:ncol(combinations)) {
+    formula <- as.formula(paste("quality ~", paste(combinations[, j], collapse = " + ")))
+    model <- lm(formula, data = train)
+    rmse <- RMSE(train$quality, model)
+    if (rmse < best_rmse) {
+      best_rmse <- rmse
+      best_model <- model
+    }
+  }
+}
+
+summary(best_model)
+RMSE(y=train$quality, model=best_model) # We get a SQMSE of 0.7534613
+yhat = predict(best_model, newdata=test)
+write.table(file="bestSubsetSelectionV1.txt", yhat, row.names = FALSE, col.names = FALSE)
+```
+As the number of features increases, it may be possible to over fit the model.
+Try to split the training set in 80-20% and use the 20% as a validation set. 
+
+```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+
+# Take 80% of the data for training and 20% for validation 
+set.seed(123)
+train_index <- sample(1:nrow(train), 0.8*nrow(train))
+partialTrain <- train[train_index,]
+partialValidation <- train[-train_index,]
+
+# Create all possible combinations of features
+all_features <- colnames(partialTrain)  # Assuming 'train' is your training data frame
+all_features <- setdiff(all_features, "quality")  # Remove the dependent variable
+feature_combinations <- lapply(1:length(all_features), function(x) combn(all_features, x))
+
+# Fit models and calculate RMSE for each combination
+best_rmse <- Inf
+best_rss <- Inf
+best_model <- NULL
+for (i in seq_along(feature_combinations)) {
+  combinations <- feature_combinations[[i]]
+  for (j in 1:ncol(combinations)) {
+    formula <- as.formula(paste("quality ~", paste(combinations[, j], collapse = " + ")))
+    model <- lm(formula, data = partialTrain)
+    # Calculate RSS
+    RSS <- sum(model$residuals^2)
+    print(rss)
+    
+    rmse <- RMSE(partialTrain$quality, model)
+    
+    #if (rmse < best_rmse) {
+    #  best_rmse <- rmse
+    #  best_model <- model
+    #}
+    
+      if (RSS < best_rss) {
+      best_rss <- RSS
+      best_model <- model
+    }
+  }
+}
+
+summary(best_model)
+yhat = predict(best_model, newdata=test)
+write.table(file="mySubmission2.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+```
+
+### Forward Stepwise Selection
+Forward stepwise selection is a computationally efficient alternative to best forward subset selection. While the best subset selection procedure considers all stepwise 2^p possible models containing subsets of the p predictors, forward stepwise considers a much smaller set of models. Forward stepwise selection begins with a model containing no predictors, and then adds predictors to the model, one-at-a-time, until all of the predictors are in the model. In particular, at each step the variable that gives the greatest additional improvement to the fit is added to the model.
+```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+
+baseModel <- lm(quality ~ 1, data = train)
+FwStepSel <- step(baseModel, direction = "forward", scope = list(lower = baseModel, upper = lm(quality ~ ., data = train)))
+
+
+#Based on the previous step results:
+fit = lm(formula = FwStepSel$call$formula, data = train)
+summary(fit)
+yhat = predict(fit, newdata=test)
+
+# Calc RMSE
+RMSE(y=train$quality, model=fit)
+
+# Put the prediction in a file for the submission on the platform
+write.table(file="forwardStepwiseSelection.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+```
+### Backward Stepwise Selection
+Like forward stepwise selection, backward stepwise selection provides an backward efficient alternative to best subset selection. However, unlike forward stepwise selection, it begins with the full least squares model containing all p selection predictors, and then iteratively removes the least useful predictor, one-at-a-time.
+```{r}
+# Data load
+train <- read.csv("wineq_train.csv", stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+
+fullModel <- lm(quality ~ ., data = train)
+BwStepSel <- step(fullModel, direction="backward")
+
+
+#Based on the previous step results:
+fit = lm(formula = BwStepSel$call$formula, data = train)
+summary(fit)
+yhat = predict(fit, newdata=test)
+
+# Calc RMSE
+RMSE(y=train$quality, model=fit)
+
+# Put the prediction in a file for the submission on the platform
+write.table(file="backwardStepwiseSelection.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+```
+
+
+Todo: 
+Todo: try AIC, BIC, adjusted R^2, Mallow's Cp, etc.
+Todo: try getting the three charts of page 233 by varying the features and use it to select the best number of features (X on chart).
+Todo: compute the actual \[P\choose{k} \]
+Todo: Try forward and backward stepwise selection to optimize the number of tested models for speed (page 230)
+# Principal Component Regresstion (6.3.1)
+
+# 2024-04-08
+WHat is data leakegae or data snooping or double dipping? Getting knoledge from the test set to train the model
+
+
+It is wrong to apply feature selection before CV...
+Also scaling should be applied after validation.
+CHeck out data divas work
+
+
+
+
+
+
+
