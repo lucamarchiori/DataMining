@@ -94,6 +94,25 @@ ggbiplot::ggbiplot(pca, obs.scale = 1, var.scale = 1, groups = train$quality, el
   ggtitle("PCA Biplot")
 ```
 
+
+
+
+### Correlation heatmap
+```{r}
+corrplot(cor(train[,1:12]), method = "number", tl.col = "black", tl.cex = 0.7, number.cex = 0.7)
+```
+
+## Feature selection
+```{r}
+baseModel <- lm(quality ~ 1, data = train)
+FwStepSel <- step(baseModel, direction = "forward", scope = list(lower = baseModel, upper = lm(quality ~ ., data = train)))
+
+
+#Based on the previous step results:
+fit = lm(formula = FwStepSel$call$formula, data = train)
+```
+
+
 ### Decision trees
 ```{r}
 
@@ -118,18 +137,22 @@ confusionMatrix(yhat, test$quality)
 
 ### Random forest
 ```{r}
-rForestfit <- randomForest(quality ~ alcohol + volatile.acidity + citric.acid + density + pH + sulphates, train)
+# Train the random forest model with all features
+rForestfit <- randomForest(quality ~ ., train)
+
+# Get the importance of each feature and plot it
+importance <- importance(rForestfit)
+varImpPlot(rForestfit)
+
+# Predict the quality of the test set with all features
 yhat = predict(rForestfit, newdata=test)
-write.table(file="fitRandomForest", yhat, row.names = FALSE, col.names = FALSE)
+write.table(file="fitRandomForestAllFeaturs", yhat, row.names = FALSE, col.names = FALSE)
+
+# Train the random forest model with selected features
+rForestfit <- randomForest(quality ~ . - sulphates - fixed.acidity - residual.sugar, train)
+yhat = predict(rForestfit, newdata=test)
+write.table(file="fitRandomForestSubsetFeaturs", yhat, row.names = FALSE, col.names = FALSE)
 ```
-
-
-### Correlation heatmap
-```{r}
-corrplot(cor(train[,1:12]), method = "number", tl.col = "black", tl.cex = 0.7, number.cex = 0.7)
-```
-
-
 <!-- ### Fit a basic linear model -->
 The lm function is used to create linear models.
 `quality ~ .` is the formula provided to the lm() function. In R modeling formulas, the tilde ~ separates the outcome variable from the predictor variables. In this case, quality is the outcome variable, and . means "all other variables in the data frame". So essentially, it's saying "predict quality using all other variables in the train data frame".
