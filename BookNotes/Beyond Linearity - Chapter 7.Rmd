@@ -175,35 +175,12 @@ names(customDs)[names(customDs) == 'education5. Advanced Degree'] <- 'AdvancedDe
 
 caretGam <- caret::train(wage ~ . ,
                          data = customDs, 
-                         method = "gam",
+                         method = "bam",
                          preProcess = c('center', 'scale'), 
                          family = "gaussian",
                          trControl = trainControl(method = "LOOCV", number=1, repeats=1))
-
-caretGam <- caret::train(wage ~ year + age + fixedEducation, data = ds, method = "gam",
-                          preProcess = c('center', 'scale'), 
-            family = "gaussian",  trControl = trainControl(method = "none"))
-
 ```
 
-```{r}
-library(caret)
-
-ds$education <- gsub('1. < HS Grad', 'ltHS', ds$education)
-ds$education <- gsub('2. HS Grad', 'HS', ds$education)
-ds$education <- gsub('3. Some College', 'SomeCollege', ds$education)
-ds$education <- gsub('4. College Grad', 'College', ds$education)
-ds$education <- gsub('5. Advanced Degree', 'AdvancedDegree', ds$education)
-
-
-caretGam <- caret::train(wage ~ age + year + education,
-                         data = ds, 
-                         method = "gam",
-                         preProcess = c('center', 'scale'), 
-                         family = "gaussian",
-                         trControl = trainControl(method = "LOOCV", number=1, repeats=1))
-
-```
 
 ```{r}
 gamModel <- caretGam$finalModel
