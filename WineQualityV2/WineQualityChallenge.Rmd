@@ -115,23 +115,23 @@ fit = lm(formula = FwStepSel$call$formula, data = train)
 
 ### Decision trees
 ```{r}
-
-# Decision tree
-
 # Fit a complete decision tree
 dTreefit <- rpart(quality ~ ., data = train, method = "anova", cp = 0.005)
 
 # Plot the decision tree
-rpart.plot(fit, type = 4, extra = 101, under = TRUE, fallen.leaves = TRUE, cex = 0.5, tweak = 1.2)
+rpart.plot(dTreefit, type = 4, extra = 101, under = TRUE, fallen.leaves = TRUE, cex = 0.5, tweak = 1.2)
 
-# Fit a decision tree on a few features
-dTreefit <- rpart(quality ~ . -citric.acid - chlorides - total.sulfur.dioxide - density, data=train)
+# Get the importance of each feature
+feature_importance <- data.frame(Feature = names(dTreefit$variable.importance), Importance = dTreefit$variable.importance)
+
+# Plot feature importance
+barplot(feature_importance$Importance, names.arg = feature_importance$Feature, las = 2,main = "Feature Importance")
+
+# Fit a decision tree on a fewer features
+dTreefit <- rpart(quality ~ . -citric.acid - pH - fixed.acidity - sulphates, data=train)
 rpart.plot(dTreefit)
 yhat = predict(dTreefit, newdata=test)
 write.table(file="fitDecisionTree.txt", yhat, row.names = FALSE, col.names = FALSE)
-
-
-confusionMatrix(yhat, test$quality)
 
 ```
 
@@ -153,7 +153,7 @@ rForestfit <- randomForest(quality ~ . - sulphates - fixed.acidity - residual.su
 yhat = predict(rForestfit, newdata=test)
 write.table(file="fitRandomForestSubsetFeaturs", yhat, row.names = FALSE, col.names = FALSE)
 ```
-<!-- ### Fit a basic linear model -->
+### Fit a basic linear model
 The lm function is used to create linear models.
 `quality ~ .` is the formula provided to the lm() function. In R modeling formulas, the tilde ~ separates the outcome variable from the predictor variables. In this case, quality is the outcome variable, and . means "all other variables in the data frame". So essentially, it's saying "predict quality using all other variables in the train data frame".
 
