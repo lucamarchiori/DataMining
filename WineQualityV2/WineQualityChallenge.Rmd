@@ -156,57 +156,64 @@ corrplot(cor(train[,1:12]), method = "number", tl.col = "black", tl.cex = 0.7, n
 
 ### Model training
 
-The wine quality challenge provides a test set of 1200 observations to evaluate the model. Instead of use it as a validation set, we will use the cross-validation technique to evaluate the model. The choice falls on a LOOCV (Leave-One-Out Cross-Validation) because the dataset is not too large, because we are evaluating a linear model (for wich LOOCV is optimezed), and because it is a good way to avoid overfitting.
+The wine quality challenge provides a test set of 1200 observations to evaluate the model. Instead of use it as a validation set, i will use the cross-validation technique to evaluate the model. The choice falls on a LOOCV (Leave-One-Out Cross-Validation) because the dataset is not too large, because we are evaluating a linear model (for wich LOOCV is optimezed), and because it is a good way to avoid overfitting.
 
+First of all, a linear model is trained on all the features of the dataset using the caret package. The model is trained with the LOOCV method and the RMSE is calculated.
 
+After that i use the test data to predict the quality of the wine. The predictions are saved in a file for the datachallenge submission and the corresponding RMSE is calculated.
 
-First of all, a linear model is trained on all the features of the dataset. The summary of the model is printed to understand the imporntance of each feature. The quality of the test set is predicted and saved in the file for the datachallenge submission. The RMSE of the model is calculated and printed.
 ```{r}
-# Train the linear model on all the features of the dataset
-lmfit <- lm(quality ~ ., data = train)
+# Set the formula for the linear model on all the features of the dataset
+lmFormula <- formula(quality ~ .)
+# Set the cross-validation method
+loocv <- trainControl(method = "LOOCV")
+# Fit the linear model
+lmFit <- caret::train(lmFormula, data = train, method = "lm", trControl = loocv, preProcess = c("center", "scale"))
+lmFit$results$RMSE #0.7508557 
 
 # Get the summary of the model
-summary(lmfit)
+summary(lmFit)
 
 # Predict the quality of the test set
-yhat = predict(lmfit, newdata=test)
+yhat = predict(lmFit, newdata=test)
 write.table(file="./DatachallengeSubmissions/fitLinearModelAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
 
 # Calculate the RMSE of the model
-rmse = RMSE(y=train$quality, model=lmfit)
+rmse = RMSE(y=train$quality, model=lmFit)
 rmse # 0.7482341
 ```
 
-Now we use the stepwise selection to select the most important features for the linear model. The model is trained with the selected features and the RMSE is calculated again.
+Now that a linear model with all the features is trained, i will use the stepwise selection to select a subset of most important features for the linear model.
+The model is trained using with the "glmStepAIC" provided by the caret package abd the RMSE is calculated again both with cross validation and the test data.
+This time, LOOCV is too slow to run ebcause the stepwise selection will train the model multiple times (by adding more and more features). For this reason, i will use the K-fold cross-validation method with k=10.
 
 ```{r}
-# Define the null model (no predictors)
-nullModel <- lm(quality ~ 1, data = train)
-
-# Define the full model (all predictors)
-fullModel <- lm(quality ~ ., data = train)
-
-# Perform forward stepwise selection
-FwStepSel <- step(nullModel, direction = "forward", scope = list(lower = nullModel, upper = fullModel))
-
+# Set the cross-validation method as k-fold cross-validation
+kCv <- trainControl(method = "cv", number = 10)
+# Train with stepwise selection
+fwStepLm <- caret::train(quality ~ ., data = train, method = "glmStepAIC", trControl = kCv, preProcess = c("center", "scale"))
+# Print the result RMSE
+fwStepLm$results$RMSE # 0.7506327
 # Get the selected features
-selectedFormula <- formula(FwStepSel)
+fwStepLm$finalModel$formula
 
-# Fit the linear model with the selected features
-fit <- lm(selectedFormula, data = train)
+# Fit the linear model with the selected features and calculate the RMSE of the model with LOOCV to compare it with the model with all features. The features not selected are citric.acid, chlorides, total.sulfur.dioxide.
+selectedFormula <- formula(quality ~ fixed.acidity + volatile.acidity + residual.sugar + free.sulfur.dioxide + density + pH + sulphates + alcohol)
+loocv <- trainControl(method = "LOOCV")
+lmFit <- caret::train(selectedFormula, data = train, method = "lm", trControl = loocv, preProcess = c("center", "scale"))
+lmFit$results$RMSE #0.7504533
 
 # Predict the quality of the test set
-yhat = predict(fit, newdata=test)
-
-# Save the predictions to a file
+yhat = predict(lmFit, newdata=test)
 write.table(file="./DatachallengeSubmissions/fitLinearModelSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
 
-# Calculate the RMSE of the model
-rmse = RMSE(y=train$quality, model=fit)
+# Calculate the RMSE of the model on test data
+rmse = RMSE(y=train$quality, model=lmFit)
 rmse # 0.7483839
+
 ```
 
-The RMSE of the model with all features is lower than the one with the selected features but this does not mean that the model with all features is better (since it can lead to overfitting the training data). In fact, the model with the selected features is better when loaded to the DataChallenge platform.
+The RMSE of the model with a subset of features is slightly lower than the one with all the features.
 
 ## Tree Models
 In this section, decision trees and random forests are used to predict the quality of the wine. The models are trained with all the features and with the selected features chosen by the tree model results.
