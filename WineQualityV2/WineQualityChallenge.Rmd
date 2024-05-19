@@ -191,7 +191,7 @@ This time, LOOCV is too slow to run ebcause the stepwise selection will train th
 # Set the cross-validation method as k-fold cross-validation
 kCv <- trainControl(method = "cv", number = 10)
 # Train with stepwise selection
-fwStepLm <- caret::train(quality ~ ., data = train, method = "glmStepAIC", trControl = kCv, preProcess = c("center", "scale"))
+fwStepLm <- caret::train(quality ~ ., data = train, method = "glmStepAIC", trControl = kCv, preProcess = c("center", "scale"), trace = FALSE)
 # Print the result RMSE
 fwStepLm$results$RMSE # 0.7506327
 # Get the selected features
