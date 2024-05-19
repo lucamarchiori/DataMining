@@ -38,6 +38,7 @@ library(ggbiplot)
 library(rpart)
 library(rpart.plot)
 library(randomForest)
+library(leaps)
 #Clear the workspace
 rm(list=ls())
 ```
@@ -63,14 +64,52 @@ RMSE <- function(y, model){
 }
 ```
 ## Exploratory Data Analysis
+Initial investigation and analysis of the dataset to understand its key characteristics, identify data quality issues and understand relationships between variables.
 ```{r}
-# Compactly Display the Structure of an Arbitrary R Object
+# Compactly Display the Structure of the dataset
 str(train)
 
 # Take an initial view of the dataset
 summary(train)
 ```
 All the features are numeric, no qualitative data is present. The quality is the target variable and since it can be considered as a continuous variable, we can use regression models to predict it.
+
+### Outliers detection
+```{r}
+# Boxplot of the features
+par(mfrow=c(3,4))
+for (i in 1:12) {
+  boxplot(train[,i], main = colnames(train)[i])
+}
+
+# Plot feature values to find outliers
+plot(train$residual.sugar, main = "Residual Sugar", pch = 19, cex = 0.5)
+plot(train$density, main = "Density", pch = 19, cex = 0.5)
+plot(train$chlorides, main = "Chlorides", pch = 19, cex = 0.5)
+plot(train$free.sulfur.dioxide, main = "Free Sulfur Dioxide", pch = 19, cex = 0.5)
+plot(train$total.sulfur.dioxide, main = "Total Sulfur Dioxide", pch = 19, cex = 0.5)
+plot(train$volatile.acidity, main = "Volatile Acidity", pch = 19, cex = 0.5)
+plot(train$fixed.acidity, main = "Fixed Acidity", pch = 19, cex = 0.5)
+plot(train$pH, main = "pH", pch = 19, cex = 0.5)
+plot(train$sulphates, main = "Sulphates", pch = 19, cex = 0.5)
+plot(train$alcohol, main = "Alcohol", pch = 19, cex = 0.5)
+plot(train$citric.acid, main = "Citric Acid", pch = 19, cex = 0.5)
+plot(train$quality, main = "Quality", pch = 19, cex = 0.5)
+```
+Outliers listed below are removed from the dataset because they are likely to be errors in the data since they are very far from the other values.
+```{r}
+# Remove dataset feature if residual sugar is higher than 40
+train <- train[train$residual.sugar < 40,]
+# Remove dataset feture if density is higher than 1.005
+train <- train[train$density < 1.005,]
+# Remove dataset feature if free sulfur dioxide is higher than 200
+train <- train[train$free.sulfur.dioxide < 200,]
+# Remove dataset feature if total sulfur dioxide is higher than 350
+train <- train[train$total.sulfur.dioxide < 350,]
+# Remove dataset feature if fixed acidity is higher than 15
+train <- train[train$fixed.acidity < 15,]
+```
+
 
 ### Scatterplots
 With the following scatterplots, we can see the relationship between the quality and the other features. Each level of quality is represented by a different color.
@@ -113,19 +152,67 @@ The correlation heatmap shows the correlation between the features. The correlat
 corrplot(cor(train[,1:12]), method = "number", tl.col = "black", tl.cex = 0.7, number.cex = 0.7)
 ```
 
-## Feature selection
-In this sections, forward step wise selection, decision trees and random forest will be used to select the most important features and train the models.
+## Linear Model
 
-### Forward Stepwise Selection
+### Model training
+
+The wine quality challenge provides a test set of 1200 observations to evaluate the model. Instead of use it as a validation set, we will use the cross-validation technique to evaluate the model. The choice falls on a LOOCV (Leave-One-Out Cross-Validation) because the dataset is not too large, because we are evaluating a linear model (for wich LOOCV is optimezed), and because it is a good way to avoid overfitting.
+
+
+
+First of all, a linear model is trained on all the features of the dataset. The summary of the model is printed to understand the imporntance of each feature. The quality of the test set is predicted and saved in the file for the datachallenge submission. The RMSE of the model is calculated and printed.
 ```{r}
-baseModel <- lm(quality ~ 1, data = train)
-FwStepSel <- step(baseModel, direction = "forward", scope = list(lower = baseModel, upper = lm(quality ~ ., data = train)))
+# Train the linear model on all the features of the dataset
+lmfit <- lm(quality ~ ., data = train)
 
-#Based on the previous step results:
-fit = lm(formula = FwStepSel$call$formula, data = train)
+# Get the summary of the model
+summary(lmfit)
+
+# Predict the quality of the test set
+yhat = predict(lmfit, newdata=test)
+write.table(file="./DatachallengeSubmissions/fitLinearModelAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+# Calculate the RMSE of the model
+rmse = RMSE(y=train$quality, model=lmfit)
+rmse # 0.7482341
 ```
 
+Now we use the stepwise selection to select the most important features for the linear model. The model is trained with the selected features and the RMSE is calculated again.
+
+```{r}
+# Define the null model (no predictors)
+nullModel <- lm(quality ~ 1, data = train)
+
+# Define the full model (all predictors)
+fullModel <- lm(quality ~ ., data = train)
+
+# Perform forward stepwise selection
+FwStepSel <- step(nullModel, direction = "forward", scope = list(lower = nullModel, upper = fullModel))
+
+# Get the selected features
+selectedFormula <- formula(FwStepSel)
+
+# Fit the linear model with the selected features
+fit <- lm(selectedFormula, data = train)
+
+# Predict the quality of the test set
+yhat = predict(fit, newdata=test)
+
+# Save the predictions to a file
+write.table(file="./DatachallengeSubmissions/fitLinearModelSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+# Calculate the RMSE of the model
+rmse = RMSE(y=train$quality, model=fit)
+rmse # 0.7483839
+```
+
+The RMSE of the model with all features is lower than the one with the selected features but this does not mean that the model with all features is better (since it can lead to overfitting the training data). In fact, the model with the selected features is better when loaded to the DataChallenge platform.
+
+## Tree Models
+In this section, decision trees and random forests are used to predict the quality of the wine. The models are trained with all the features and with the selected features chosen by the tree model results.
+
 ### Decision trees
+A complete decision tree is trained on all the features of the dataset. The importance of each feature is calculated and plotted.
 ```{r}
 # Fit a complete decision tree
 dTreefit <- rpart(quality ~ ., data = train, method = "anova", cp = 0.005)
@@ -139,18 +226,31 @@ feature_importance <- data.frame(Feature = names(dTreefit$variable.importance), 
 # Plot feature importance
 barplot(feature_importance$Importance, names.arg = feature_importance$Feature, las = 2,main = "Feature Importance")
 
+# Predict the quality of the test set
+yhat = predict(dTreefit, newdata=test)
+write.table(file="./DatachallengeSubmissions/fitDecisionTreeAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+# Calculate the RMSE of the model
+rmse = RMSE(y=train$quality, model=dTreefit)
+rmse # 0.7250806
+```
+From the decision trees importance results, we can exclude the features citric.acid, pH, fixed.acidity, and sulphates. Now we train a decision tree with the selected features.
+```{r}
 # Fit a decision tree on a fewer features
 dTreefit <- rpart(quality ~ . -citric.acid - pH - fixed.acidity - sulphates, data=train)
 rpart.plot(dTreefit)
-#yhat = predict(dTreefit, newdata=test)
-#write.table(file="fitDecisionTreeSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
 
+# Predict the quality of the test set
+yhat = predict(dTreefit, newdata=test)
+write.table(file="./DatachallengeSubmissions/fitDecisionTreeSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+# Calculate the RMSE of the model
 rmse = RMSE(y=train$quality, model=dTreefit)
-rmse # 0.7498735
-
+rmse # 0.7488062
 ```
 
 ### Random forests
+As an alternative to decision trees, random forests are used to predict the quality of the wine. The model is trained with all the features and with the selected features chosen by the random forest results.
 ```{r}
 # Train the random forest model with all features
 rForestfit <- randomForest(quality ~ ., train)
@@ -161,30 +261,34 @@ varImpPlot(rForestfit)
 
 # Predict the quality of the test set with all features
 yhat = predict(rForestfit, newdata=test)
-#write.table(file="fitRandomForestAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
 
+# Save the predictions to a file
+write.table(file="./DatachallengeSubmissions/fitRandomForestAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+# Calculate the RMSE of the model
 rmse = RMSE(y=train$quality, model=rForestfit)
-rmse # 0.6022833
-
-# Train the random forest model with selected features
-rForestfit <- randomForest(quality ~ . - sulphates - fixed.acidity - citric.acid - pH, train)
-yhat = predict(rForestfit, newdata=test)
-write.table(file="fitRandomForestSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
-
-rmse = RMSE(y=train$quality, model=rForestfit)
-rmse # 0.6185242
+rmse # 0.6031999
+# DataChallenge submission: 0,6265 
 ```
 
-### Feature selection and tree models considerations
-From the stepwise selection, we get that the best model is the one with the following features:  alcohol + volatile.acidity + residual.sugar + free.sulfur.dioxide + density + pH + sulphates + fixed.acidity.
+Now we train a random forest model with the selected features chosen by the random forest results.
 
-From the decision trees, we can exclude the features citric.acid, pH, fixed.acidity, and sulphates.
+```{r}
+# Train the random forest model with selected features
+#rForestfit <- randomForest(quality ~ . - sulphates - fixed.acidity - citric.acid - pH, train)
+rForestfit <- randomForest(quality ~ . - sulphates - fixed.acidity, train)
 
-From the random forest, we can exclude the features sulphates, fixed.acidity, citric.acid, and pH.
+# Predict the quality of the test set with selected features
+yhat = predict(rForestfit, newdata=test)
 
-Even though the random forest model trained with all features has the lowest RMSE, it is better to use the model trained with the selected features to avoid overfitting. In fact, the model trained with the feature subset gives a better result when loaded to the DataChallenge platform.
+# Save the predictions to a file
+write.table(file="./DatachallengeSubmissions/fitRandomForestSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
 
-## Linear model
-For the scope of this challenge, a linear model is trained using the features selected with the forward stepwise selection. Cross validation is used to evaluate the model.
+# Calculate the RMSE of the model
+rmse = RMSE(y=train$quality, model=rForestfit)
+rmse # 0.6084313
+# DataChallenge submission: 0,6424
+```
+
 
 

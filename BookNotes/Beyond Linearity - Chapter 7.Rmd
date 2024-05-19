@@ -109,7 +109,7 @@ A good way to choose the number of knots (degrees of freedom) is to use cross-va
 Regression splines often give superior results to polynomial regression. This is because unlike polynomials, which must use a high degree to produce flexible fits, splines introduce flexibility by increasing the number of knots but keeping the degree fixed. Generally, this approach produces more stable estimates. Splines also allow us to place more knots, and hence flexibility, over regions where the function f seems to be changing rapidly, and fewer knots where f appears more stable.
 
 ## Smoothing Splines
-What we are looking for, is to find a functions $g(x)$ that fits the observed data well by having $$ RSS = \sum_{i=1}^{n} (y_i - g(x_i))^2 $$ as small as possible. The problem with this is that if we don't put any constraints on $g(x)$, it will pass through every single point in the dataset, making $$RSS = 0$$, and leading to overfitting. We instead want a function that is smooth.
+What we are looking for, is to find a functions $g(x)$ that fits the observed data well by having $ RSS = \sum_{i=1}^{n} (y_i - g(x_i))^2 $ as small as possible. The problem with this is that if we don't put any constraints on $g(x)$, it will pass through every single point in the dataset, making $RSS = 0$, and leading to overfitting. We instead want a function that is smooth.
 
 A natural approach to add smoothness is to find the function $g(x)$ that minimizes:
 $$
@@ -123,7 +123,7 @@ The integral notation is used to represent the total sum of the variability of $
 
 When $\lambda = 0$, the penalty term has no effect, and the smoothing spline will interpolate the data. When $\lambda$ is very large, the penalty term will dominate the criterion, and the function $g(x)$ will be very smooth. The tuning parameter $\lambda$ controls the trade-off between the fit to the training data and the smoothness of the function $g(x)$ and hence the effective degrees of freedom of the model.
 
-The function $g(x)$ is a piecewise cubic polynomial with knots at each unique values of $$ x_1, x_2, ..., x_n $$, and with a continuous first and second derivative. The function $g(x)$ is also linear in the regions outside the range of the $x_i$ (knots).
+The function $g(x)$ is a piecewise cubic polynomial with knots at each unique values of $ x_1, x_2, ..., x_n $, and with a continuous first and second derivative. The function $g(x)$ is also linear in the regions outside the range of the $x_i$ (knots).
 
 In fitting a smoothing spline, we do not need to select the number of knots, as the smoothing spline will automatically place a knot at each training observation. Instead, we need to select the best value of the tuning parameter $\lambda$ such that, the RSS is minimized in cross-validation. An efficient way to do this is LOOCV.
 
@@ -142,11 +142,11 @@ y_i = \beta_0 + f_1(x_{i1}) + f_2(x_{i2}) + ... + f_p(x_{ip}) + \epsilon = \beta
 $$
 Each non-linear function for each predictor is calculated separately and then added togheter.
 
-GAMs allow us to fit a non-linear $$f_i$$ to each $$X_j$$, so that we can automatically model non-linear relationships that standard linear regression will miss. This means that we do not need to manually try out many different transformations on each variable individually.
+GAMs allow us to fit a non-linear $f_i$ to each $X_j$, so that we can automatically model non-linear relationships that standard linear regression will miss. This means that we do not need to manually try out many different transformations on each variable individually.
 
-The non-linear fits can potentially make more accurate predictions for the response $$Y$$.
-Because the model is additive, we can examine the effect of each $$X_j$$ on $$y$$ individually while holding all of the other variables fixed.
-The smoothness of the function $$f_j$$ for the variable $$X_j$$ can be summarized via degrees of freedom.
+The non-linear fits can potentially make more accurate predictions for the response $Y$.
+Because the model is additive, we can examine the effect of each $X_j$ on $y$ individually while holding all of the other variables fixed.
+The smoothness of the function $f_j$ for the variable $X_j$ can be summarized via degrees of freedom.
 
 ```{r}
 library(caret)
