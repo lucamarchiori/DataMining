@@ -39,6 +39,7 @@ library(rpart)
 library(rpart.plot)
 library(randomForest)
 library(leaps)
+library(tree)
 #Clear the workspace
 rm(list=ls())
 ```
@@ -48,7 +49,7 @@ rm(list=ls())
 # Load the training data
 train <- read.csv("wineq_train.csv", stringsAsFactors=F)
 # Load the test data
-test <- read.csv("wineq_validation.csv", , stringsAsFactors=F)
+test <- read.csv("wineq_validation.csv", stringsAsFactors=F)
 ```
 ## Helpers
 ### Minimal Squared Error
@@ -215,52 +216,55 @@ rmse # 0.7483839
 
 The RMSE of the model with a subset of features is slightly lower than the one with all the features.
 
-## Tree Models
-In this section, decision trees and random forests are used to predict the quality of the wine. The models are trained with all the features and with the selected features chosen by the tree model results.
+## Tree-Based methods
+In this section, decision trees and random forests are used to predict the quality of the wine.
 
-### Decision trees
-A complete decision tree is trained on all the features of the dataset. The importance of each feature is calculated and plotted.
+### Regression trees
+First of all, the regression tree is trained on all the features using a very low pruning level. By using cross validation, it is possible to calculate and plot the deviance of the model at different pruning levels. From the plot, it is possible to see that after a pruning level of 6, the deviance is not improved, instead the risk of overfitting increases so the tree is pruned to the optimal level. The predictions are saved in a file for the datachallenge submission and the corresponding test RMSE is calculated.
+
+Alcohol, volatile acidity, and free sulfur dioxide are the most important features in the tree and are those that impact the quality of the wine the most.
+
+With this dataset, the regression tree performs better than the linear model.
+
 ```{r}
-# Fit a complete decision tree
-dTreefit <- rpart(quality ~ ., data = train, method = "anova", cp = 0.005)
+# Fit a regression tree on all the features with a very small pruning level
+rTreeFit <- tree(quality ~ ., data = train, control = tree.control(nobs = nrow(train), mindev = 0.005))
 
-# Plot the decision tree
-rpart.plot(dTreefit, type = 4, extra = 101, under = TRUE, fallen.leaves = TRUE, cex = 0.5, tweak = 1.2)
+# Plot the tree
+summary(rTreeFit)
+plot(rTreeFit)
+text(rTreeFit, pretty = 0)
 
-# Get the importance of each feature
-feature_importance <- data.frame(Feature = names(dTreefit$variable.importance), Importance = dTreefit$variable.importance)
+# Cross-validation to find the optimal pruning level using the deviance
+rTreeCv <- cv.tree(rTreeFit, method = "deviance")
+plot(rTreeCv$size, rTreeCv$dev, type = "b", xlab = "Tree Size", ylab = "Deviance", main = "Pruning VS Deviance Plot")
 
-# Plot feature importance
-barplot(feature_importance$Importance, names.arg = feature_importance$Feature, las = 2,main = "Feature Importance")
+# Prune the tree to the optimal level
+prunedTree <- prune.tree(rTreeFit, best = 6)
 
 # Predict the quality of the test set
-yhat = predict(dTreefit, newdata=test)
-write.table(file="./DatachallengeSubmissions/fitDecisionTreeAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+yhat = predict(prunedTree, newdata=test)
+write.table(file="./DatachallengeSubmissions/fitRegressionTreeAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
 
 # Calculate the RMSE of the model
-rmse = RMSE(y=train$quality, model=dTreefit)
+rmse = RMSE(y=train$quality, model=prunedTree)
 rmse # 0.7250806
-```
-From the decision trees importance results, we can exclude the features citric.acid, pH, fixed.acidity, and sulphates. Now we train a decision tree with the selected features.
-```{r}
-# Fit a decision tree on a fewer features
-dTreefit <- rpart(quality ~ . -citric.acid - pH - fixed.acidity - sulphates, data=train)
-rpart.plot(dTreefit)
 
-# Predict the quality of the test set
-yhat = predict(dTreefit, newdata=test)
-write.table(file="./DatachallengeSubmissions/fitDecisionTreeSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+# Plot the final pruned tree
+summary(prunedTree)
+plot(prunedTree)
+text(prunedTree, pretty = 1)
 
-# Calculate the RMSE of the model
-rmse = RMSE(y=train$quality, model=dTreefit)
-rmse # 0.7488062
 ```
 
 ### Random forests
-As an alternative to decision trees, random forests are used to predict the quality of the wine. The model is trained with all the features and with the selected features chosen by the random forest results.
+As an alternative to regression trees, random forests can be used to predict the quality of the wine.
 ```{r}
 # Train the random forest model with all features
-rForestfit <- randomForest(quality ~ ., train)
+rForestFit <- randomForest(quality ~ ., train)
+
+# Get the importance of each feature and plot it
+rForestFit$mtry
 
 # Get the importance of each feature and plot it
 importance <- importance(rForestfit)
