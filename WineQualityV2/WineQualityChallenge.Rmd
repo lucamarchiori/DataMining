@@ -186,7 +186,7 @@ rmse # 0.7482341
 
 Now that a linear model with all the features is trained, i will use the stepwise selection to select a subset of most important features for the linear model.
 The model is trained using with the "glmStepAIC" provided by the caret package abd the RMSE is calculated again both with cross validation and the test data.
-This time, LOOCV is too slow to run ebcause the stepwise selection will train the model multiple times (by adding more and more features). For this reason, i will use the K-fold cross-validation method with k=10.
+This time, LOOCV is too slow to run because the stepwise selection will train the model multiple times (by adding more and more features). For this reason, i will use the K-fold cross-validation method with k=10.
 
 ```{r}
 # Set the cross-validation method as k-fold cross-validation
@@ -220,7 +220,7 @@ The RMSE of the model with a subset of features is slightly lower than the one w
 In this section, decision trees and random forests are used to predict the quality of the wine.
 
 ### Regression trees
-First of all, the regression tree is trained on all the features using a very low pruning level. By using cross validation, it is possible to calculate and plot the deviance of the model at different pruning levels. From the plot, it is possible to see that after a pruning level of 6, the deviance is not improved, instead the risk of overfitting increases so the tree is pruned to the optimal level. The predictions are saved in a file for the datachallenge submission and the corresponding test RMSE is calculated.
+First of all, the regression tree is trained on all the features using a very low pruning level. By using cross validation, it is possible to calculate and plot the deviance of the model at different pruning levels. From the plot, it is possible to see that after a pruning level of 6, the deviance is not improved, instead the risk of overfitting increases so the tree is pruned to the optimal level. The predictions are saved in a file for the datachallenge submission and the corresponding RMSE is calculated.
 
 Alcohol, volatile acidity, and free sulfur dioxide are the most important features in the tree and are those that impact the quality of the wine the most.
 
@@ -259,47 +259,37 @@ text(prunedTree, pretty = 1)
 
 ### Random forests
 As an alternative to regression trees, random forests can be used to predict the quality of the wine.
-```{r}
-# Train the random forest model with all features
-rForestFit <- randomForest(quality ~ ., train)
-
-# Get the importance of each feature and plot it
-rForestFit$mtry
-
-# Get the importance of each feature and plot it
-importance <- importance(rForestfit)
-varImpPlot(rForestfit)
-
-# Predict the quality of the test set with all features
-yhat = predict(rForestfit, newdata=test)
-
-# Save the predictions to a file
-write.table(file="./DatachallengeSubmissions/fitRandomForestAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
-
-# Calculate the RMSE of the model
-rmse = RMSE(y=train$quality, model=rForestfit)
-rmse # 0.6031999
-# DataChallenge submission: 0,6265 
-```
-
-Now we train a random forest model with the selected features chosen by the random forest results.
 
 ```{r}
-# Train the random forest model with selected features
-#rForestfit <- randomForest(quality ~ . - sulphates - fixed.acidity - citric.acid - pH, train)
-rForestfit <- randomForest(quality ~ . - sulphates - fixed.acidity, train)
+# Define a grid of mtry values to search over
+tuneGrid <- expand.grid(mtry = seq(1, ncol(train) - 1, by = 1))
 
-# Predict the quality of the test set with selected features
-yhat = predict(rForestfit, newdata=test)
+# Set up cross-validation control
+rForestCtrl <- trainControl(method = "cv", number = 5, search = "grid")
 
-# Save the predictions to a file
-write.table(file="./DatachallengeSubmissions/fitRandomForestSubsetFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+# Train the model with the tuning grid
+rForestFit <- train(quality ~ ., data = train, method = "rf", trControl = rForestCtrl, preProcess = c("center", "scale"), tuneGrid = tuneGrid)
 
-# Calculate the RMSE of the model
-rmse = RMSE(y=train$quality, model=rForestfit)
-rmse # 0.6084313
-# DataChallenge submission: 0,6424
+# Get the importance of each feature and plot it
+importance <- importance(rForestFit$finalModel)
+varImpPlot(rForestFit$finalModel)
+
+# Predict the quality of the test set
+yhat = predict(rForestFit, newdata = test)
+write.table(file = "./DatachallengeSubmissions/fitRandomForestAllFeatures.txt", yhat, row.names = FALSE, col.names = FALSE)
+
+# Calculate the RMSE of the model on the training data
+rmse = RMSE(y=train$quality, model=rForestFit$finalModel)
+print(rmse) # 0.6065538
+
+# Get the final mtry value
+rForestFit$finalModel$mtry
+
 ```
+
+
+
+
 
 
 
