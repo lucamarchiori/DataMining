@@ -259,6 +259,9 @@ text(prunedTree, pretty = 1)
 
 ### Random forests
 As an alternative to regression trees, random forests can be used to predict the quality of the wine.
+Here, a grid search is performed to find the optimal mtry value for the random forest model. The mtry value is the number of features randomly sampled at each split of the tree. Cross validation is used to evaluate the different models.
+
+The random forest model with mtry = 2 is the best model trained so far. A prediction on the test set is made and uploaded to the datachallenge submission.
 
 ```{r}
 # Define a grid of mtry values to search over
