@@ -3,8 +3,8 @@ title: "BeyondLinearityChapter"
 author: "Luca Marchiori"
 date: "2024-05-11"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -169,12 +169,20 @@ ds$health <- gsub('1. <=Good', 'ltGood', ds$health)
 ds$health <- gsub('2. >=Very Good', 'gtVeryGood', ds$health)
 
 
-caretGam <- caret::train(wage ~ age + year + education + race + health_ins + health,
-                         data = ds, 
-                         method = "bam",
-                         preProcess = c('center', 'scale'), 
-                         family = "gaussian",
-                         trControl = trainControl(method = "CV", number=2))
+#caretGam <- caret::train(wage ~ age + year + education + race + health_ins + health,
+#                         data = ds, 
+#                         method = "bam",
+#                         preProcess = c('center', 'scale'), 
+#                         family = "gaussian",
+#                         trControl = trainControl(method = "CV", number=2))
+
+caretGam <- caret::train(wage ~ s(age) + year + education,
+                         data = ds,
+                         method = "gamSpline",
+                         preProcess = c('center', 'scale')
+                         tuneGrid = expand.grid(degree = 1:3, k = 5:10),
+                         
+
                          
 ```
 
@@ -186,6 +194,10 @@ gamModel$formula
 vis.gam(gamModel, view = c("age", "year"))
 plot.gam(gamModel, shade = TRUE)
 ```
+
+
+
+
 
 
 
